@@ -1,0 +1,165 @@
+:root {
+    --gold: #C5A059;
+    --dark-bg: #1a1a1a;
+    --light-text: #f0f0f0;
+    --frame-color: #463020;
+    --matting-color: #fdfbf7;
+}
+
+body {
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    font-family: 'Lato', sans-serif;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+.input-group {
+    margin: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+}
+
+input[type="text"], input[type="file"] {
+    padding: 12px 20px;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background: #333;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+/* Custom file input styling tweak */
+input[type="file"]::file-selector-button {
+    background-color: var(--gold);
+    color: #1a1a1a;
+    border: none;
+    padding: 8px 16px;
+    margin-right: 15px;
+    border-radius: 4px;
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background-color: #d4b06a;
+}
+
+
+button {
+    padding: 12px 25px;
+    background-color: var(--gold);
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    background-color: #d4b06a;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Progress Bar */
+.progress-bar-container {
+    width: 300px;
+    height: 10px;
+    background-color: #333;
+    border-radius: 5px;
+    margin: 20px auto;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: var(--gold);
+    transition: width 0.3s ease;
+}
+
+/* Picture Frame */
+.frame-container {
+    margin: 40px auto;
+    max-width: 800px;
+    width: 100%;
+    /* Start of realistic frame css */
+}
+
+.picture-frame {
+    background-color: var(--frame-color);
+    border: 20px solid #2a1b12; /* Outer dark wood */
+    box-shadow: 
+        inset 0 0 20px rgba(0,0,0,0.5), /* Inner shadow for depth */
+        0 10px 30px rgba(0,0,0,0.5), /* Drop shadow */
+        0 0 0 5px #5c402a, /* Accent border */
+        0 0 0 10px #1a110b; /* Outer-most dark line */
+    padding: 2px; /* Slight gap */
+    position: relative;
+    display: inline-block;
+}
+
+.matting {
+    background-color: var(--matting-color);
+    padding: 40px; /* Width of the white matting */
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.2);
+}
+
+#generated-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+/* Download Button */
+.download-btn {
+    display: inline-block;
+    margin-top: 30px;
+    padding: 15px 40px;
+    background: transparent;
+    border: 2px solid var(--gold);
+    color: var(--gold);
+    text-decoration: none;
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.download-btn:hover {
+    background: var(--gold);
+    color: #000;
+    box-shadow: 0 0 20px rgba(197, 160, 89, 0.4);
+}

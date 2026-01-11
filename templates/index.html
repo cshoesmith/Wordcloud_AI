@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordcloud AI Art</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Beer Wordcloud AI</h1>
+            <p>Transform your Untappd history into a Dali-esque Masterpiece.</p>
+        </header>
+
+        <section id="input-section">
+            <div class="input-group">
+                <label for="image-upload">Upload an image of your beer transaction list:</label>
+                <input type="file" id="image-upload" accept="image/*" />
+                
+                <label for="style-select" style="margin-top: 15px; display: block;">Choose your Masterpiece Style:</label>
+                <select id="style-select" style="width: 100%; padding: 10px; margin-bottom: 20px;">
+                    <option value="dali">Salvador Dali Surrealist</option>
+                    <option value="scarry">Richard Scarry Beer Garden (70s)</option>
+                </select>
+
+                <p class="note">Upload a screenshot of your Untappd history or a beer menu.</p>
+                <button id="generate-btn">Generate Masterpiece</button>
+            </div>
+        </section>
+
+        <section id="progress-section" class="hidden">
+            <h2 id="status-text">Initializing...</h2>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </section>
+
+        <section id="result-section" class="hidden">
+            <div class="frame-container">
+                <div class="picture-frame">
+                    <div class="matting">
+                        <img id="generated-image" src="" alt="Generated AI Art" />
+                    </div>
+                </div>
+            </div>
+            <a id="download-btn" class="download-btn" href="#" download="masterpiece.png">Download in High Res</a>
+        </section>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>

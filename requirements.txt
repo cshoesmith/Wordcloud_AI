@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+requests
+jinja2
+python-dotenv
+openai
+beautifulsoup4
+html5lib
+playwright
+easyocr
+opencv-python
+python-multipart
