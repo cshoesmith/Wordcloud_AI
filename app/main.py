@@ -7,7 +7,7 @@ import uuid
 import asyncio
 from typing import Optional
 from app.services.beercloud import get_wordcloud_data
-from app.services.image_gen import generate_image, generate_image_from_prompt, enrich_prompt
+from app.services.image_gen import generate_image, generate_image_from_prompt, enrich_prompt, generate_image_dalle
 from app.services.ocr_service import get_ocr_words
 from dotenv import load_dotenv
 import time
@@ -74,7 +74,7 @@ async def process_wordcloud(task_id: str, cookie: str):
     except Exception as e:
         tasks[task_id] = {"status": "failed", "error": str(e), "progress": 100}
 
-async def process_ocr_task(task_id: str, image_bytes: bytes, style: str):
+async def process_ocr_task(task_id: str, image_bytes: bytes, style: str, use_dalle: bool):
     tasks[task_id] = {"status": "analyzing_image", "progress": 10}
     loop = asyncio.get_running_loop()
     
@@ -94,10 +94,13 @@ async def process_ocr_task(task_id: str, image_bytes: bytes, style: str):
              # Fallback
              rich_prompt = f"A list of items: {', '.join(words[:20])}"
 
-        # Step 3: Generate Image (Pollinations Flux)
+        # Step 3: Generate Image (Pollinations Flux OR DALL-E)
         tasks[task_id] = {"status": "generating_art", "progress": 70, "words": words, "word_count": len(words)}
         
-        image_url = await loop.run_in_executor(None, generate_image_from_prompt, rich_prompt)
+        if use_dalle:
+             image_url = await loop.run_in_executor(None, generate_image_dalle, rich_prompt)
+        else:
+             image_url = await loop.run_in_executor(None, generate_image_from_prompt, rich_prompt)
         
         if image_url:
             tasks[task_id] = {"status": "completed", "progress": 100, "image_url": image_url, "words": words}
@@ -120,8 +123,8 @@ async def generate(request: GenerateRequest, background_tasks: BackgroundTasks):
     return {"task_id": task_id}
 
 @app.post("/upload")
-async def upload_image(background_tasks: BackgroundTasks, file: UploadFile = File(...), style: str = Form("dali")):
-    print(f"Received upload: {file.filename}, content_type={file.content_type}, style={style}")
+async def upload_image(background_tasks: BackgroundTasks, file: UploadFile = File(...), style: str = Form("dali"), use_dalle: bool = Form(False)):
+    print(f"Received upload: {file.filename}, content_type={file.content_type}, style={style}, use_dalle={use_dalle}")
     try:
         task_id = str(uuid.uuid4())
         tasks[task_id] = {"status": "queued", "progress": 0}
@@ -130,7 +133,7 @@ async def upload_image(background_tasks: BackgroundTasks, file: UploadFile = Fil
         content = await file.read()
         print(f"Read {len(content)} bytes")
         
-        background_tasks.add_task(process_ocr_task, task_id, content, style)
+        background_tasks.add_task(process_ocr_task, task_id, content, style, use_dalle)
         return {"task_id": task_id}
     except Exception as e:
         print(f"UPLOAD ERROR: {e}")

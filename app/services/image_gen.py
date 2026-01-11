@@ -73,30 +73,106 @@ def enrich_prompt(words: list[str], style: str) -> str:
         return None
 
 def generate_image_from_prompt(prompt: str) -> str:
-    """Generates image URL from a raw prompt string."""
+    """
+    Generates an image by calling Pollinations.ai (Gen) with headers,
+    saves it locally to static/generated/, and returns a local relative URL.
+    This bypasses browser restrictions on sending headers for <img> tags.
+    """
+    import random
+    import uuid
+    
     api_key = os.getenv("POLLINATIONS_API_KEY")
     encoded_prompt = urllib.parse.quote(prompt)
-    
-    import random
     seed = random.randint(0, 10000)
-    
-    # We switch back to the main image endpoint which is more compatible with direct URL embedding
-    # and supports query parameters for configuration.
-    base_url = "https://image.pollinations.ai/prompt"
     model = "flux" 
     
+    # Use the authenticated generation endpoint
+    base_url = f"https://gen.pollinations.ai/image/{encoded_prompt}"
+    
+    # Construct URL params
     params = f"?width=1024&height=1024&seed={seed}&nologo=true&model={model}"
+    full_url = base_url + params
     
+    print(f"DEBUG: Requesting image from: {base_url} (params hidden)")
+
+    headers = {}
     if api_key:
-        # Some endpoints accept the key to bypass cache or limits, though standard usage is often free.
-        # We add it just in case support is added or it helps with rate limits.
-        # private=true might not work on the public endpoint but doesn't hurt.
-        params += f"&private=true"
-        
-    image_url = f"{base_url}/{encoded_prompt}{params}"
+        headers["Authorization"] = f"Bearer {api_key}"
+        # headers["Cookie"] = f"session={api_key}" # Some APIs want it here, but Bearer is standard
     
-    print(f"DEBUG: Generated URL (model={model}): {image_url}")
-    return image_url
+    try:
+        response = requests.get(full_url, headers=headers, timeout=60)
+        
+        if response.status_code == 200:
+            # Check if we got the "We Moved" placeholder (content length usually indicates this, or check bytes)
+            # But the 'gen' endpoint should work if authenticated.
+            
+            # Save to static/generated
+            filename = f"gen_{uuid.uuid4()}.jpg"
+            save_path = os.path.join("static", "generated", filename)
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            
+            with open(save_path, "wb") as f:
+                f.write(response.content)
+            
+            print(f"DEBUG: Image saved to {save_path}")
+            return f"/static/generated/{filename}"
+        else:
+            print(f"ERROR: Pollinations API failed with {response.status_code}: {response.text}")
+            # Identify if it's 401 again
+            if response.status_code == 401:
+                 return "https://placehold.co/1024x1024?text=401+Unauthorized:+Check+API+Key"
+            return "https://placehold.co/1024x1024?text=Generation+Failed"
+            
+    except Exception as e:
+        print(f"ERROR: Exception during image generation: {e}")
+        return "https://placehold.co/1024x1024?text=Server+Error"
+
+def generate_image_dalle(prompt: str) -> str:
+    """
+    Generates an image using OpenAI DALL-E 3.
+    Saves it locally to static/generated/ and returns a local relative URL.
+    """
+    import uuid
+    
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("ERROR: OpenAI Key missing for DALL-E generation")
+        return None
+
+    try:
+        client = OpenAI(api_key=api_key)
+        
+        print(f"DEBUG: Calling DALL-E 3 generation...")
+        
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt[:3900], # DALL-E 3 char limit is 4000
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+
+        image_url_temp = response.data[0].url
+        
+        # Download the image to make it permanent
+        filename = f"dalle_{uuid.uuid4()}.png"
+        save_path = os.path.join("static", "generated", filename)
+        
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        
+        img_data = requests.get(image_url_temp).content
+        with open(save_path, 'wb') as handler:
+            handler.write(img_data)
+
+        print(f"DEBUG: DALL-E Image saved to {save_path}")
+        return f"/static/generated/{filename}"
+
+    except Exception as e:
+        print(f"ERROR: DALL-E Generation failed: {e}")
+        return None
 
 def generate_image(words: list[str], style: str = "dali") -> str:
     """

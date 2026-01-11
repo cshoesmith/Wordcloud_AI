@@ -1,8 +1,10 @@
 document.getElementById('generate-btn').addEventListener('click', async () => {
     const fileInput = document.getElementById('image-upload');
     const styleSelect = document.getElementById('style-select');
+    const useDalleCheckbox = document.getElementById('use-dalle');
     const file = fileInput.files[0];
     const style = styleSelect.value;
+    const useDalle = useDalleCheckbox.checked;
 
     if (!file) {
         alert("Please select an image first.");
@@ -22,6 +24,7 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('style', style);
+        formData.append('use_dalle', useDalle);
 
         // Start Upload & Generation
         const response = await fetch('/upload', {
