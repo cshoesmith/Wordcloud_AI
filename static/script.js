@@ -1,43 +1,69 @@
-// Theme selector logic
-document.getElementById('theme-select').addEventListener('change', (e) => {
+// General logic to handle any XOR button group
+function setupXorGroup(groupId, hiddenInputId, callback) {
+    const group = document.getElementById(groupId);
+    const input = document.getElementById(hiddenInputId);
+    
+    if (!group || !input) return;
+
+    const buttons = group.querySelectorAll('.xor-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove selected from all in this group
+            buttons.forEach(b => b.classList.remove('selected'));
+            // Add to clicked
+            btn.classList.add('selected');
+            // Update value
+            const newVal = btn.getAttribute('data-value');
+            input.value = newVal;
+
+            // Optional callback for logic updates
+            if (callback) callback(newVal);
+        });
+    });
+}
+
+// 1. Setup Input Mode Switcher
+setupXorGroup('input-mode-group', 'input-mode-value', (mode) => {
+    const uploadContainer = document.getElementById('upload-container');
+    const manualTextContainer = document.getElementById('manual-text-container');
+    
+    if (mode === 'upload') {
+        uploadContainer.classList.remove('hidden');
+        manualTextContainer.classList.add('hidden');
+    } else {
+        uploadContainer.classList.add('hidden');
+        manualTextContainer.classList.remove('hidden');
+    }
+});
+
+// 2. Setup Theme Switcher
+setupXorGroup('theme-group', 'theme-value', (theme) => {
     const customContainer = document.getElementById('custom-theme-container');
-    if (e.target.value === 'Custom') {
+    if (theme === 'Custom') {
         customContainer.classList.remove('hidden');
     } else {
         customContainer.classList.add('hidden');
     }
 });
 
-// Input Mode Switcher Logic
-const inputModes = document.querySelectorAll('input[name="input-mode"]');
-const uploadContainer = document.getElementById('upload-container');
-const manualTextContainer = document.getElementById('manual-text-container');
+// 3. Setup Style Switcher
+setupXorGroup('style-group', 'style-value', null);
 
-inputModes.forEach(radio => {
-    radio.addEventListener('change', (e) => {
-        if (e.target.value === 'upload') {
-            uploadContainer.classList.remove('hidden');
-            manualTextContainer.classList.add('hidden');
-        } else {
-            uploadContainer.classList.add('hidden');
-            manualTextContainer.classList.remove('hidden');
-        }
-    });
-});
+// 4. Setup Model Switcher
+setupXorGroup('model-group', 'model-value', null);
+
 
 document.getElementById('generate-btn').addEventListener('click', async () => {
-    const styleSelect = document.getElementById('style-select');
-    const modelSelect = document.getElementById('model-select');
-    const themeSelect = document.getElementById('theme-select');
-    const customThemeInput = document.getElementById('custom-theme-input');
-    
-    // Determine Input Mode
-    const inputMode = document.querySelector('input[name="input-mode"]:checked').value;
+    // Determine Input Mode from hidden input
+    const inputMode = document.getElementById('input-mode-value').value;
 
-    const style = styleSelect.value;
-    const modelProvider = modelSelect.value;
+    // Get values from hidden inputs
+    const style = document.getElementById('style-value').value;
+    const modelProvider = document.getElementById('model-value').value;
     
-    let theme = themeSelect.value;
+    let theme = document.getElementById('theme-value').value;
+    const customThemeInput = document.getElementById('custom-theme-input');
+
     if (theme === 'Custom') {
         theme = customThemeInput.value.trim();
         if (!theme) {

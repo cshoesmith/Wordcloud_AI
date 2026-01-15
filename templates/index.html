@@ -10,62 +10,66 @@
 <body>
     <div class="container">
         <header>
-            <h1>Beer Wordcloud AI <span style="font-size: 0.5em; color: green; vertical-align: middle; border: 1px solid green; padding: 2px 5px; border-radius: 4px;">v1.10 (BUGFIX)</span></h1>
+            <h1>Beer Wordcloud AI <span style="font-size: 0.5em; color: green; vertical-align: middle; border: 1px solid green; padding: 2px 5px; border-radius: 4px;">v1.11 (UI POLISH)</span></h1>
             <p>Transform your Untappd history into a Dali-esque Masterpiece.</p>
         </header>
 
         <section id="input-section">
-            <div class="input-mode-selector" style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; background: #222; padding: 10px; border-radius: 8px;">
-                <label style="cursor: pointer;">
-                    <input type="radio" name="input-mode" value="upload" checked> 
-                    <span style="margin-left: 5px;">Upload Image</span>
-                </label>
-                <label style="cursor: pointer;">
-                    <input type="radio" name="input-mode" value="manual"> 
-                    <span style="margin-left: 5px;">Enter Words Manually</span>
-                </label>
+            
+            <!-- Input Mode Selector (XOR) -->
+            <div class="xor-group" id="input-mode-group">
+                <button type="button" class="xor-btn selected" data-value="upload">Upload Image</button>
+                <button type="button" class="xor-btn" data-value="manual">Enter Words Manually</button>
             </div>
+            <input type="hidden" id="input-mode-value" value="upload">
 
             <div class="input-group">
+                <!-- Upload Container -->
                 <div id="upload-container">
-                    <label for="image-upload">Upload an image of your beer transaction list:</label>
+                    <label for="image-upload" style="display:block; margin-bottom:10px;">Upload an image of your beer transaction list:</label>
                     <input type="file" id="image-upload" accept="image/*" />
                 </div>
 
+                <!-- Manual Input Container -->
                 <div id="manual-text-container" class="hidden">
-                    <label for="manual-text-input">Enter your words (comma separated):</label>
-                    <textarea id="manual-text-input" rows="6" placeholder="Example: Guinness, IPA, Dublin, Friends, Music, Pub, Friday Night..." style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit; margin-bottom: 10px;"></textarea>
-                    <p class="note" style="margin-top: 0;">Enter at least 3 descriptive words for best results.</p>
+                    <label for="manual-text-input" style="display:block; margin-bottom:10px;">Enter your words (comma separated):</label>
+                    <textarea id="manual-text-input" rows="6" placeholder="Example: Guinness, IPA, Dublin, Friends, Music, Pub, Friday Night..."></textarea>
+                    <p class="note" style="margin-top: 5px;">Enter at least 3 descriptive words for best results.</p>
                 </div>
                 
-                <label for="style-select" style="margin-top: 15px; display: block;">Choose your Masterpiece Style:</label>
-                <select id="style-select" style="width: 100%; padding: 10px; margin-bottom: 20px;">
-                    <option value="dali">Salvador Dali Surrealist</option>
-                    <option value="scarry">Richard Scarry Beer Garden (70s)</option>
-                    <option value="picasso">Pablo Picasso Cubism</option>
-                    <option value="cyberpunk">Cyberpunk / Future Neon</option>
-                    <option value="technology">Abstract Technology / Data</option>
-                </select>
+                <!-- Theme Selector (XOR) -->
+                <label style="margin-top: 25px; display: block; color: var(--gold); font-family: 'Cinzel', serif;">Theme</label>
+                <div class="xor-group" id="theme-group">
+                    <button type="button" class="xor-btn selected" data-value="Beer">Beer (Untappd)</button>
+                    <button type="button" class="xor-btn" data-value="Custom">Custom Theme</button>
+                </div>
+                <input type="hidden" id="theme-value" value="Beer">
 
-                <label for="model-select" style="margin-top: 5px; display: block;">Choose AI Generator:</label>
-                <select id="model-select" style="width: 100%; padding: 10px; margin-bottom: 20px;">
-                    <option value="google">Google Imagen 3 (Nano Banana)</option>
-                    <option value="dalle">OpenAI DALL-E 3 (High Quality)</option>
-                </select>
-
-                <label for="theme-select" style="margin-top: 5px; display: block;">Theme:</label>
-                <select id="theme-select" style="width: 100%; padding: 10px; margin-bottom: 10px;">
-                    <option value="Beer">Beer (Untappd History)</option>
-                    <option value="Custom">Custom Theme</option>
-                </select>
-
-                <div id="custom-theme-container" class="hidden" style="margin-bottom: 20px;">
-                    <label for="custom-theme-input" style="display: block; font-size: 0.9em; margin-bottom: 5px;">Describe your theme (e.g. 'Wine', 'Books', 'Travel'):</label>
-                    <input type="text" id="custom-theme-input" placeholder="Enter your custom theme..." style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
+                <div id="custom-theme-container" class="hidden" style="margin-bottom: 20px; width: 100%; max-width: 500px;">
+                    <label for="custom-theme-input" style="display: block; font-size: 0.9em; margin-bottom: 5px;">Describe your theme:</label>
+                    <input type="text" id="custom-theme-input" placeholder="e.g. 'Wine', 'Books', 'Sci-Fi', 'Travel'..." style="width: 100%;">
                 </div>
 
-                <p class="note">Upload a screenshot of your Untappd history or a beer menu.</p>
-                <button id="generate-btn">Generate Masterpiece</button>
+                <!-- Style Selector (XOR) -->
+                <label style="margin-top: 15px; display: block; color: var(--gold); font-family: 'Cinzel', serif;">Masterpiece Style</label>
+                <div class="xor-group" id="style-group">
+                    <button type="button" class="xor-btn selected" data-value="dali">Dali Surrealist</button>
+                    <button type="button" class="xor-btn" data-value="scarry">Richard Scarry (70s)</button>
+                    <button type="button" class="xor-btn" data-value="picasso">Picasso Cubism</button>
+                    <button type="button" class="xor-btn" data-value="cyberpunk">Cyberpunk</button>
+                    <button type="button" class="xor-btn" data-value="technology">Abstract Tech</button>
+                </div>
+                <input type="hidden" id="style-value" value="dali">
+
+                <!-- Model Selector (XOR) -->
+                <label style="margin-top: 15px; display: block; color: var(--gold); font-family: 'Cinzel', serif;">AI Generator</label>
+                <div class="xor-group" id="model-group">
+                    <button type="button" class="xor-btn selected" data-value="google">Google Imagen 3</button>
+                    <button type="button" class="xor-btn" data-value="dalle">OpenAI DALL-E 3</button>
+                </div>
+                <input type="hidden" id="model-value" value="google">
+
+                <button id="generate-btn" style="margin-top: 30px; font-size: 1.1rem; padding: 15px 40px;">Generate Masterpiece</button>
             </div>
         </section>
 

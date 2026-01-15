@@ -91,6 +91,64 @@ button:hover {
     display: none !important;
 }
 
+/* XOR Toggle Buttons */
+.xor-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.xor-btn {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 10px 20px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.xor-btn:hover {
+    background: rgba(197, 160, 89, 0.2);
+    box-shadow: 0 0 10px rgba(197, 160, 89, 0.2);
+}
+
+.xor-btn.selected {
+    background: var(--gold);
+    color: var(--dark-bg);
+    font-weight: bold;
+    box-shadow: 0 0 15px rgba(197, 160, 89, 0.5);
+    transform: scale(1.05); /* Slight pop */
+}
+
+/* Hide default file input and radios if we replace them, 
+   but for now we keep file input standard until further request. */
+input[type="radio"].hidden-radio {
+    display: none;
+}
+
+/* Custom Input Field Styling to match */
+textarea, input[type="text"] {
+    background: #222;
+    border: 1px solid #555;
+    color: white;
+    font-family: 'Lato', sans-serif; 
+    padding: 10px;
+    border-radius: 4px;
+}
+
+textarea:focus, input[type="text"]:focus {
+    border-color: var(--gold);
+    outline: none;
+    box-shadow: 0 0 5px var(--gold);
+}
+
 /* Progress Bar */
 .progress-bar-container {
     width: 300px;
