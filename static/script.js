@@ -97,16 +97,7 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
             // Reset UI on error (simple)
             document.getElementById('input-section').classList.remove('hidden');
             document.getElementById('progress-section').classList.add('hidden');
-            throw new Error(`Request Failed: ${response.statustext} \n ${errText}`);
-        }
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error("Upload Error Response: ", response.status, response.statusText, errText); // Log to console for user
-            throw new Error(`Upload Failed: ${response.status} ${response.statusText}\nServer says: ${errText}`);
+            throw new Error(`Request Failed: ${response.statusText} \n ${errText}`);
         }
 
         const data = await response.json();
