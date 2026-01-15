@@ -117,7 +117,7 @@ async def process_wordcloud(task_id: str, cookie: str):
     except Exception as e:
         tasks[task_id] = {"status": "failed", "error": str(e), "progress": 100}
 
-async def continue_generation_task(task_id: str, words: list[str], style: str, model_provider: str):
+async def continue_generation_task(task_id: str, words: list[str], style: str, model_provider: str, theme: str = "Beer"):
     tasks[task_id]["status"] = "enriching_prompt"
     tasks[task_id]["progress"] = 40
     
@@ -130,7 +130,7 @@ async def continue_generation_task(task_id: str, words: list[str], style: str, m
         random.shuffle(shuffled_words)
         
         # Pass a larger chunk of words (500) to allow for the new multi-stage "all words" reasoning
-        rich_data = await loop.run_in_executor(None, enrich_prompt, shuffled_words[:500], style)
+        rich_data = await loop.run_in_executor(None, enrich_prompt, shuffled_words[:500], style, theme)
         
         prompt = ""
         reasoning = ""
@@ -182,7 +182,7 @@ async def continue_generation_task(task_id: str, words: list[str], style: str, m
     except Exception as e:
         tasks[task_id] = {"status": "failed", "error": str(e), "progress": 100}
 
-async def process_ocr_task(task_id: str, image_bytes: bytes, style: str, model_provider: str):
+async def process_ocr_task(task_id: str, image_bytes: bytes, style: str, model_provider: str, theme: str = "Beer"):
     tasks[task_id] = {"status": "analyzing_image", "progress": 10}
     loop = asyncio.get_running_loop()
     
@@ -197,12 +197,13 @@ async def process_ocr_task(task_id: str, image_bytes: bytes, style: str, model_p
                  "progress": 20, 
                  "style": style, 
                  "model_provider": model_provider,
+                 "theme": theme,
                  "error": "No text detected. Please enter words manually."
              }
              return
 
         # Proceed to generation if words found
-        await continue_generation_task(task_id, words, style, model_provider)
+        await continue_generation_task(task_id, words, style, model_provider, theme)
 
     except Exception as e:
         tasks[task_id] = {"status": "failed", "error": str(e), "progress": 100}
@@ -240,10 +241,10 @@ async def generate(request: Request, request_body: GenerateRequest, background_t
     return {"task_id": task_id}
 
 @app.post("/upload")
-async def upload_image(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...), style: str = Form("dali"), model_provider: str = Form("google")):
+async def upload_image(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...), style: str = Form("dali"), model_provider: str = Form("google"), theme: str = Form("Beer")):
     if not request.session.get("authenticated"):
         raise HTTPException(status_code=401, detail="Unauthorized")
-    print(f"Received upload: {file.filename}, content_type={file.content_type}, style={style}, model_provider={model_provider}")
+    print(f"Received upload: {file.filename}, content_type={file.content_type}, style={style}, model_provider={model_provider}, theme={theme}")
     try:
         task_id = str(uuid.uuid4())
         tasks[task_id] = {"status": "queued", "progress": 0}
@@ -252,7 +253,7 @@ async def upload_image(request: Request, background_tasks: BackgroundTasks, file
         content = await file.read()
         print(f"Read {len(content)} bytes")
         
-        background_tasks.add_task(process_ocr_task, task_id, content, style, model_provider)
+        background_tasks.add_task(process_ocr_task, task_id, content, style, model_provider, theme)
         return {"task_id": task_id}
     except Exception as e:
         print(f"UPLOAD ERROR: {e}")
@@ -282,13 +283,14 @@ async def resume_task(request: Request, body: ResumeRequest, background_tasks: B
     # Get previous context
     style = task_state.get("style", "dali")
     model_provider = task_state.get("model_provider", "google")
+    theme = task_state.get("theme", "Beer")
     
     # Update status immediately
     tasks[task_id]["status"] = "resuming"
     tasks[task_id]["progress"] = 30
     
     # Launch background task
-    background_tasks.add_task(continue_generation_task, task_id, words_list, style, model_provider)
+    background_tasks.add_task(continue_generation_task, task_id, words_list, style, model_provider, theme)
     
     return {"status": "ok", "message": "Resuming generation"}
 

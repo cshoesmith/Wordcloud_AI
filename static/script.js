@@ -1,10 +1,32 @@
+// Theme selector logic
+document.getElementById('theme-select').addEventListener('change', (e) => {
+    const customContainer = document.getElementById('custom-theme-container');
+    if (e.target.value === 'Custom') {
+        customContainer.classList.remove('hidden');
+    } else {
+        customContainer.classList.add('hidden');
+    }
+});
+
 document.getElementById('generate-btn').addEventListener('click', async () => {
     const fileInput = document.getElementById('image-upload');
     const styleSelect = document.getElementById('style-select');
     const modelSelect = document.getElementById('model-select');
+    const themeSelect = document.getElementById('theme-select');
+    const customThemeInput = document.getElementById('custom-theme-input');
+
     const file = fileInput.files[0];
     const style = styleSelect.value;
     const modelProvider = modelSelect.value;
+    
+    let theme = themeSelect.value;
+    if (theme === 'Custom') {
+        theme = customThemeInput.value.trim();
+        if (!theme) {
+            alert("Please enter a custom theme description.");
+            return;
+        }
+    }
 
     if (!file) {
         alert("Please select an image first.");
@@ -25,6 +47,7 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
         formData.append('file', file);
         formData.append('style', style);
         formData.append('model_provider', modelProvider);
+        formData.append('theme', theme);
 
         // Start Upload & Generation
         const response = await fetch('/upload', {

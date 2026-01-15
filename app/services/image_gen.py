@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Ensure env is loaded
 load_dotenv()
 
-def enrich_prompt(words: list[str], style: str) -> dict:
+def enrich_prompt(words: list[str], style: str, theme: str = "Beer") -> dict:
     """Uses OpenAI to create a detailed visual description from the word list. Returns dict with 'visual_prompt' and 'reasoning'."""
     openai_key = os.getenv("OPENAI_API_KEY")
     if not openai_key:
@@ -18,12 +18,27 @@ def enrich_prompt(words: list[str], style: str) -> dict:
     try:
         client = OpenAI(api_key=openai_key)
         
+        if theme.lower() == "beer":
+            context_desc = "ocr from beer menus/history"
+            entity_class = "Beer Names (Stouts, IPAs), Venues (Pubs, Breweries), Locations (Cities, Countries), and Styles/Flavors"
+            expand_ex = "'Guinness' -> dark, velvet, Irish harp; 'IPA' -> hops, green vines, bitterness"
+            item_name_ref = "beer/venue name"
+            item_coll_ref = "beer names"
+            experience_ref = "beer experience"
+        else:
+            context_desc = f"list items related to the theme section: '{theme}'"
+            entity_class = f"Key Entities, Categories, and Descriptors relevant to the theme '{theme}'"
+            expand_ex = f"items related to '{theme}' -> visual metaphors"
+            item_name_ref = f"'{theme}' item name"
+            item_coll_ref = f"'{theme}' items"
+            experience_ref = f"'{theme}' experience"
+
         system_content = (
-            "You are an expert AI Art Director and Data Storyteller. Your goal is to transform a list of raw text (ocr from beer menus/history) "
+            f"You are an expert AI Art Director and Data Storyteller. Your goal is to transform a list of raw text ({context_desc}) "
             "into a rich, cohesive visual narrative. \n"
             "PROCESS:\n"
-            "1. ANALYZE: Identify every entity in the list. Classify them into: Beer Names (Stouts, IPAs), Venues (Pubs, Breweries), Locations (Cities, Countries), and Styles/Flavors.\n"
-            "2. EXPAND: For each key entity, imagine its visual essence (e.g., 'Guinness' -> dark, velvet, Irish harp; 'IPA' -> hops, green vines, bitterness).\n"
+            f"1. ANALYZE: Identify every entity in the list. Classify them into: {entity_class}.\n"
+            f"2. EXPAND: For each key entity, imagine its visual essence (e.g., {expand_ex}).\n"
             "3. NARRATE: Develop a short visual story or scene where all these expanded elements coexist naturally.\n"
             "4. PROMPT: Write a highly detailed image generation prompt based on this narrative in the requested style."
         )
@@ -34,29 +49,29 @@ def enrich_prompt(words: list[str], style: str) -> dict:
             "scarry": (
                 "Style: Richard Scarry 'Busytown' Illustration (1970s Children's Book).\n"
                 "Details: A chaotic, happy scene teeming with anthropomorphic animals (pigs in lederhosen, cat waiters). "
-                "Every beer/venue name must be a physical object or shop sign in the scene. "
+                f"Every {item_name_ref} must be a physical object or shop sign in the scene. "
                 "Draw a 'Where's Waldo' density. Flat colors, detailed ink lines."
             ),
             "dali": (
                 "Style: Salvador Dali Surrealist Oil Painting.\n"
-                "Details: A dreamscape where time and matter are fluid. Transform the beer names into surreal objects "
+                "Details: A dreamscape where time and matter are fluid. Transform the {item_coll_ref} into surreal objects "
                 "(e.g., a clock made of foam, a burning giraffe made of hops). "
                 "Long shadows, vast horizons, double images. Captures the subconscious feeling of the drinking session."
             ),
             "picasso": (
                 "Style: Pablo Picasso Synthetic Cubism (1912).\n"
-                "Details: Fragment and reassemble the beer experience. Show the bottles, glasses, and pub atmosphere from multiple angles simultaneously. "
+                "Details: Fragment and reassemble the {experience_ref}. Show the bottles, glasses, and pub atmosphere from multiple angles simultaneously. "
                 "Use geometric shapes, collage-like textures, and a muted but rich color palette (ochre, grey, blue). "
                 "Abstract the text into graphical elements within the composition."
             ),
             "cyberpunk": (
                 "Style: High-Fidelity Cyberpunk / Blade Runner Aesthetic.\n"
-                "Details: A futuristic night market in Neo-Tokyo. The beer names are glowing neon holograms and advertisements reflected in rain-slicked streets. "
+                "Details: A futuristic night market in Neo-Tokyo. The {item_coll_ref} are glowing neon holograms and advertisements reflected in rain-slicked streets. "
                 "Cybernetic patrons sipping glowing liquids. High contrast, blue and pink, chromatic aberration, steam, grime, and high-tech."
             ),
             "technology": (
                 "Style: Abstract Future Technology / Data Visualization.\n"
-                "Details: A visual representation of the beer data as a complex digital network. "
+                "Details: A visual representation of the {experience_ref} as a complex digital network. "
                 "Circuit board pathways made of gold liquid. Nodes representing beers pulsing with light. "
                 "Clean, white, silver, and blue color scheme. 3D render, Octane render, 8k resolution."
             )
@@ -66,7 +81,7 @@ def enrich_prompt(words: list[str], style: str) -> dict:
         specific_instruction = style_instructions.get(style, style_instructions["dali"])
         
         user_content = (
-            f"Input Words: {joined_words}.\n\n"
+            f"Input Words ({theme}): {joined_words}.\n\n"
             f"Execute the Multi-stage process. Categories -> Expansions -> Story.\n"
             f"Finally, generate the prompt applying this specific style guidance:\n{specific_instruction}"
         )
