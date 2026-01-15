@@ -8,14 +8,32 @@ document.getElementById('theme-select').addEventListener('change', (e) => {
     }
 });
 
+// Input Mode Switcher Logic
+const inputModes = document.querySelectorAll('input[name="input-mode"]');
+const uploadContainer = document.getElementById('upload-container');
+const manualTextContainer = document.getElementById('manual-text-container');
+
+inputModes.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        if (e.target.value === 'upload') {
+            uploadContainer.classList.remove('hidden');
+            manualTextContainer.classList.add('hidden');
+        } else {
+            uploadContainer.classList.add('hidden');
+            manualTextContainer.classList.remove('hidden');
+        }
+    });
+});
+
 document.getElementById('generate-btn').addEventListener('click', async () => {
-    const fileInput = document.getElementById('image-upload');
     const styleSelect = document.getElementById('style-select');
     const modelSelect = document.getElementById('model-select');
     const themeSelect = document.getElementById('theme-select');
     const customThemeInput = document.getElementById('custom-theme-input');
+    
+    // Determine Input Mode
+    const inputMode = document.querySelector('input[name="input-mode"]:checked').value;
 
-    const file = fileInput.files[0];
     const style = styleSelect.value;
     const modelProvider = modelSelect.value;
     
@@ -28,9 +46,29 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
         }
     }
 
-    if (!file) {
-        alert("Please select an image first.");
-        return;
+    let endpoint = '/upload';
+    const formData = new FormData();
+    formData.append('style', style);
+    formData.append('model_provider', modelProvider);
+    formData.append('theme', theme);
+
+    if (inputMode === 'upload') {
+        const fileInput = document.getElementById('image-upload');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("Please select an image to upload.");
+            return;
+        }
+        formData.append('file', file);
+    } else {
+        // Manual Input Mode
+        endpoint = '/generate_manual';
+        const manualText = document.getElementById('manual-text-input').value.trim();
+        if (!manualText) {
+            alert("Please enter some words to generate your masterpiece.");
+            return;
+        }
+        formData.append('words', manualText);
     }
     
     // Switch UI to loading state
@@ -39,18 +77,28 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     const statusText = document.getElementById('status-text');
     const progressBar = document.getElementById('progress-bar');
     
-    statusText.innerText = "Uploading image...";
+    if (inputMode === 'upload') {
+        statusText.innerText = "Uploading image...";
+    } else {
+        statusText.innerText = "Processing words...";
+        progressBar.style.width = "30%";
+    }
 
     try {
-        // Create FormData
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('style', style);
-        formData.append('model_provider', modelProvider);
-        formData.append('theme', theme);
+        // Start Request
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData
+        });
 
-        // Start Upload & Generation
-        const response = await fetch('/upload', {
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error("Error Response: ", response.status, response.statusText, errText); 
+            // Reset UI on error (simple)
+            document.getElementById('input-section').classList.remove('hidden');
+            document.getElementById('progress-section').classList.add('hidden');
+            throw new Error(`Request Failed: ${response.statustext} \n ${errText}`);
+        }
             method: 'POST',
             body: formData
         });

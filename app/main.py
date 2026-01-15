@@ -259,6 +259,37 @@ async def upload_image(request: Request, background_tasks: BackgroundTasks, file
         print(f"UPLOAD ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/generate_manual")
+async def generate_manual(request: Request, background_tasks: BackgroundTasks, 
+                          words: str = Form(...), 
+                          style: str = Form("dali"), 
+                          model_provider: str = Form("google"), 
+                          theme: str = Form("Beer")):
+    if not request.session.get("authenticated"):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    print(f"Received manual generation request: {len(words)} chars, style={style}, theme={theme}")
+    
+    # Process words
+    words_list = [w.strip() for w in words.split(",")]
+    # Remove empty
+    words_list = [w for w in words_list if w]
+
+    if not words_list or len(words_list) < 1:
+        raise HTTPException(status_code=400, detail="Please provide at least one word.")
+
+    try:
+        task_id = str(uuid.uuid4())
+        tasks[task_id] = {"status": "queued", "progress": 0}
+        
+        # Start generation directly, skipping OCR
+        background_tasks.add_task(continue_generation_task, task_id, words_list, style, model_provider, theme)
+        
+        return {"task_id": task_id}
+    except Exception as e:
+        print(f"MANUAL GEN ERROR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/resume_task")
 async def resume_task(request: Request, body: ResumeRequest, background_tasks: BackgroundTasks):
     if not request.session.get("authenticated"):
