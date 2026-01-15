@@ -1,10 +1,10 @@
 document.getElementById('generate-btn').addEventListener('click', async () => {
     const fileInput = document.getElementById('image-upload');
     const styleSelect = document.getElementById('style-select');
-    const useDalleCheckbox = document.getElementById('use-dalle');
+    const modelSelect = document.getElementById('model-select');
     const file = fileInput.files[0];
     const style = styleSelect.value;
-    const useDalle = useDalleCheckbox.checked;
+    const modelProvider = modelSelect.value;
 
     if (!file) {
         alert("Please select an image first.");
@@ -24,7 +24,7 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('style', style);
-        formData.append('use_dalle', useDalle);
+        formData.append('model_provider', modelProvider);
 
         // Start Upload & Generation
         const response = await fetch('/upload', {
@@ -51,14 +51,53 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
                 
                 progressBar.style.width = statusData.progress + "%";
                 
+                
                 if (statusData.status === 'analyzing_image') {
                     statusText.innerText = "Reading text from image (this may take a moment)...";
+                } else if (statusData.status === 'waiting_for_input') {
+                    // Start Waiting for Manual Input
+                    document.getElementById('progress-section').classList.add('hidden');
+                    document.getElementById('manual-input-section').classList.remove('hidden');
+                    
+                    // One-time listener for the resume button
+                    const resumeBtn = document.getElementById('resume-btn');
+                    // Avoid stacking listeners by cloning/replacing
+                    const newBtn = resumeBtn.cloneNode(true);
+                    resumeBtn.parentNode.replaceChild(newBtn, resumeBtn);
+                    
+                    newBtn.addEventListener('click', async () => {
+                        const words = document.getElementById('manual-words-input').value;
+                        if (!words || words.length < 3) {
+                            alert("Please enter at least 3 descriptive words.");
+                            return;
+                        }
+                        
+                        // Switch back to loading
+                        document.getElementById('manual-input-section').classList.add('hidden');
+                        document.getElementById('progress-section').classList.remove('hidden');
+                        statusText.innerText = "Resuming creation...";
+                        
+                        try {
+                            const resRes = await fetch('/resume_task', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ task_id: taskId, words: words })
+                            });
+                            if(!resRes.ok) throw new Error("Failed to resume");
+                            
+                            // Polling continues automatically since we didn't clear interval
+                        } catch (e) {
+                             statusText.innerText = "Error Resuming: " + e.message;
+                             clearInterval(pollInterval);
+                        }
+                    });
+                    
                 } else if (statusData.status === 'generating_art') {
                     const wordExample = statusData.words ? statusData.words.slice(0, 5).join(", ") : "beers";
                     statusText.innerText = `Found: ${wordExample}...\nDreaming up a masterpiece...`;
                 } else if (statusData.status === 'completed') {
                     clearInterval(pollInterval);
-                    showResult(statusData.image_url);
+                    showResult(statusData);
                 } else if (statusData.status === 'failed') {
                     clearInterval(pollInterval);
                     statusText.innerText = "Error: " + statusData.error;
@@ -76,13 +115,18 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     }
 });
 
-function showResult(imageUrl) {
+function showResult(data) {
     document.getElementById('progress-section').classList.add('hidden');
     document.getElementById('result-section').classList.remove('hidden');
     
     const img = document.getElementById('generated-image');
-    img.src = imageUrl;
+    img.src = data.image_url;
     
     const downloadBtn = document.getElementById('download-btn');
-    downloadBtn.href = imageUrl;
+    downloadBtn.href = data.image_url;
+
+    // Populate details
+    document.getElementById('art-reasoning').innerText = data.reasoning || "The AI meditated on your request but remained silent on its methods.";
+    document.getElementById('art-prompt').innerText = data.generated_prompt || "Prompt data unavailable.";
+    document.getElementById('extracted-words').innerText = (data.words && data.words.length > 0) ? data.words.join(" • ") : "No specific words identified.";
 }

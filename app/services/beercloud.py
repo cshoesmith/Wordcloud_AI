@@ -1,5 +1,69 @@
 from playwright.sync_api import sync_playwright
 import time
+import re
+import os
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def clean_words_with_llm(raw_words: list[str]) -> list[str]:
+    """
+    Uses OpenAI to clean the scraped word list: fixing typos, removing UI junk,
+    and ensuring only relevant beer-related terms remain.
+    """
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not openai_key or not raw_words:
+        return raw_words
+
+    try:
+        client = OpenAI(api_key=openai_key)
+        
+        # Deduplicate and limit to save tokens
+        unique_words = list(set(raw_words))
+        # If we have too many, just take the top 150 to avoid massive context
+        if len(unique_words) > 150:
+            unique_words = unique_words[:150]
+            
+        joined_words = ", ".join(unique_words)
+        print(f"DEBUG: Asking LLM to clean {len(unique_words)} words...")
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a data cleaner for a beer attributes word cloud. "
+                        "Input: A raw list of strings scraped from a website. "
+                        "Task: Return a clean, comma-separated list of ONLY relevant beer descriptors (flavors, styles, ingredients) and brewery names. "
+                        "Rules:\n"
+                        "1. FIX partial/corrupted words (e.g., 'Strawb...' -> 'Strawberry', 'Haz...' -> 'Hazy').\n"
+                        "2. REMOVE all UI elements (Settings, Login, Cookies, Privacy, Menu, 'Analyze').\n"
+                        "3. REMOVE generic/stop words (Beer, Drink, Pour, View, Full).\n"
+                        "4. KEEP specialized terms (DIPA, Gose, Brett, Citra, Mosaic).\n"
+                        "5. Output ONLY the comma-separated list, nothing else."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": f"Clean this list: {joined_words}"
+                }
+            ],
+            temperature=0.1,
+            max_tokens=500
+        )
+        
+        cleaned_text = response.choices[0].message.content
+        # robust splitting
+        cleaned_list = [w.strip() for w in cleaned_text.split(',') if len(w.strip()) > 2]
+        
+        print(f"DEBUG: LLM cleaned list size: {len(cleaned_list)}")
+        return cleaned_list
+
+    except Exception as e:
+        print(f"Warning: LLM cleaning failed ({e}). Returning original list.")
+        return raw_words
 
 def get_wordcloud_data(cookie_string: str = None):
     """
@@ -87,34 +151,10 @@ def get_wordcloud_data(cookie_string: str = None):
             else:
                 print("Timed out waiting for login.")
             # FILTERING & CLEANUP
-            # Remove common cookie/consent/UI junk words - EXPANDED LIST
-            junk_words = {
-                "Preferences", "analyze", "described", "clicking", "With", "experience", "agree", 
-                "non-essential", "user", "Sign", "time", "website's", "consent", "here?", "Login",
-                "Untappd", "Cookie", "Policy", "Privacy", "Settings", "Accept", "Reject", "Close",
-                "navigation", "Toggle", "Menu", "Search", "Profile", "Account", "Rights", "Reserved",
-                "Apple", "Google", "Facebook", "Twitter", "Instagram", "Discord", "Legal", "Terms",
-                "Partners", "Jobs", "Support", "Help", "Status", "Developers", "About", "Blog",
-                "change", "traffic", "your", "cookies", "must", "password", "make", "website", 
-                "essential", "agree", "work", "continue", "Forgot", "around", "also", "preference",
-                "preferences"
-            }
-            
-            # Case-insensitive filtering
-            junk_lower = {j.lower() for j in junk_words}
-            
-            cleaned_data = []
-            for w in data:
-                # Remove punctuation
-                w_clean = re.sub(r'[^\w]', '', w)
-                
-                # Filter out junk, short words, and numbers
-                if (len(w_clean) > 3 and 
-                    w_clean.lower() not in junk_lower and 
-                    not w_clean.isdigit()):
-                    cleaned_data.append(w_clean)
-            
-            data = cleaned_data
+            # Use LLM to clean up the scraped data (Fixes corrupted words and removes UI junk)
+            if data:
+                print("Refining extracted words with LLM...")
+                data = clean_words_with_llm(data)
             
             # Debug: Take a screenshot to see what the bot sees
             try:
@@ -125,12 +165,9 @@ def get_wordcloud_data(cookie_string: str = None):
 
             # FINAL SAFETY FALLBACK
             # If we still have no data (or very little), use a fallback list so the AI has something to draw.
-            # Increased threshold to 8 to avoid getting just 4 random junk words.
-            if len(data) < 8:
-                print("Extraction failed to find extraction quality text. Using fallback beer words.")
-                data = ["IPA", "Stout", "Hazy", "Lager", "Ale", "Hops", "Malt", "Brewery", "Craft", "Pilsner", "Saison", "Lambic", "Porter", "Dunkel", "Trappist"]
-                print("Extraction failed to find significant text. Using fallback beer words.")
-                data = ["IPA", "Stout", "Hazy", "Lager", "Ale", "Hops", "Malt", "Brewery", "Craft", "Pilsner"]
+            if len(data) < 5:
+                print("Extraction failed to find sufficient quality text. Using fallback beer words.")
+                data = ["IPA", "Stout", "Hazy", "Lager", "Ale", "Hops", "Malt", "Brewery", "Craft", "Pilsner", "Saison", "Lambic"]
             
         except Exception as e:
             print(f"Error during browser interaction: {e}")

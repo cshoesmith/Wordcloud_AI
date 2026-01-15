@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Restricted - Beer Wordcloud AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .login-container {
+            background-color: #1e1e1e;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            border: 1px solid #333;
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 {
+            color: #d4af37;
+            font-family: 'Cinzel', serif;
+            margin-bottom: 2rem;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 1.5rem;
+            background-color: #2c2c2c;
+            border: 1px solid #444;
+            color: white;
+            font-size: 1rem;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #d4af37;
+            color: #121212;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 4px;
+            transition: opacity 0.2s;
+            font-family: 'Cinzel', serif;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .error {
+            color: #cf6679;
+            margin-bottom: 1rem;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Wordcloud AI</h1>
+        {% if error %}
+            <span class="error">{{ error }}</span>
+        {% endif %}
+        <form action="/login" method="post">
+            <input type="password" name="password" placeholder="Enter Password" required autofocus>
+            <button type="submit">ENTER</button>
+        </form>
+    </div>
+</body>
+</html>

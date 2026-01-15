@@ -23,14 +23,16 @@
                 <select id="style-select" style="width: 100%; padding: 10px; margin-bottom: 20px;">
                     <option value="dali">Salvador Dali Surrealist</option>
                     <option value="scarry">Richard Scarry Beer Garden (70s)</option>
+                    <option value="picasso">Pablo Picasso Cubism</option>
+                    <option value="cyberpunk">Cyberpunk / Future Neon</option>
+                    <option value="technology">Abstract Technology / Data</option>
                 </select>
 
-                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="use-dalle" name="use-dalle">
-                    <label for="use-dalle" style="margin: 0; font-size: 0.9em; cursor: pointer;">
-                        Use OpenAI DALL-E 3 (High Quality, Slower)
-                    </label>
-                </div>
+                <label for="model-select" style="margin-top: 5px; display: block;">Choose AI Generator:</label>
+                <select id="model-select" style="width: 100%; padding: 10px; margin-bottom: 20px;">
+                    <option value="google">Google Imagen 3 (Nano Banana)</option>
+                    <option value="dalle">OpenAI DALL-E 3 (High Quality)</option>
+                </select>
 
                 <p class="note">Upload a screenshot of your Untappd history or a beer menu.</p>
                 <button id="generate-btn">Generate Masterpiece</button>
@@ -44,6 +46,17 @@
             </div>
         </section>
 
+
+        <section id="manual-input-section" class="hidden">
+           <h2>No Words Detected</h2>
+           <p>The AI couldn't find any text in your image. To proceed, please provide 10 descriptive words or themes below.</p>
+           
+           <textarea id="manual-words-input" rows="4" placeholder="Stout, Hops, Dark, Pub, Fun, Ireland, Guitar, Music, Cheers, Friday" style="width: 100%; max-width: 500px; padding: 10px; margin-bottom: 20px; background: #222; color: white; border: 1px solid #444; border-radius: 4px;"></textarea>
+           
+           <br>
+           <button id="resume-btn">CREATE MASTERPIECE</button>
+        </section>
+
         <section id="result-section" class="hidden">
             <div class="frame-container">
                 <div class="picture-frame">
@@ -53,6 +66,17 @@
                 </div>
             </div>
             <a id="download-btn" class="download-btn" href="#" download="masterpiece.png">Download in High Res</a>
+
+            <div class="details-section" style="margin-top: 30px; text-align: left; max-width: 800px; margin-left: auto; margin-right: auto; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 8px;">
+                <h3>AI Art Director's Note</h3>
+                <p><strong>Themes & Reasoning:</strong> <span id="art-reasoning">Loading...</span></p>
+                <div style="background: #222; padding: 10px; border-radius: 4px; border-left: 4px solid #d4af37; margin: 15px 0;">
+                    <p style="font-family: monospace; font-size: 0.9em; margin: 0; color: #ccc;">" <span id="art-prompt">...</span> "</p>
+                </div>
+                
+                <h4 style="margin-top: 20px;">Extracted Inspiration</h4>
+                <p id="extracted-words" style="font-size: 0.9em; color: #aaa;"></p>
+            </div>
         </section>
     </div>
     <script src="/static/script.js"></script>
