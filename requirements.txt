@@ -8,3 +8,5 @@ python-multipart
 requests
 jinja2
 pydantic
+grpcio==1.75.1
+grpcio-status==1.75.1
