@@ -1,4 +1,8 @@
-from playwright.sync_api import sync_playwright
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None
+
 import time
 import re
 import os
@@ -76,6 +80,10 @@ def get_wordcloud_data(cookie_string: str = None):
 
     data = []
     
+    if sync_playwright is None:
+        print("WARNING: Playwright not installed. Scraping disabled.")
+        return []
+
     with sync_playwright() as p:
         # Launch browser with headless=False so the user can interact if needed
         browser = p.chromium.launch(headless=False)
