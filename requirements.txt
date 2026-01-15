@@ -2,11 +2,12 @@
 uvicorn
 python-dotenv
 openai
-google-genai
+google-genai==1.58.0
 itsdangerous
 python-multipart
 requests
 jinja2
 pydantic
-grpcio==1.75.1
-grpcio-status==1.75.1
+google-api-core==2.29.0
+grpcio==1.76.0
+grpcio-status==1.76.0
