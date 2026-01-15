@@ -161,22 +161,21 @@ def generate_image_google(prompt: str) -> str:
             # Handle bytes vs base64 string
             if isinstance(final_image_data, str):
                 try:
+                    # Check if it's already a base64 string we can just use
+                    # Logic: if it decodes successfully, it's b64.
                     image_bytes = base64.b64decode(final_image_data)
+                    b64_string = final_image_data
                 except Exception:
-                    # In case it's raw string bytes or something else, though SDK usually gives b64 string or bytes
+                    # It was a raw string? Convert to bytes then b64
                     image_bytes = final_image_data.encode() if hasattr(final_image_data, 'encode') else final_image_data
+                    b64_string = base64.b64encode(image_bytes).decode('utf-8')
             else:
-                image_bytes = final_image_data
+                # It is bytes
+                b64_string = base64.b64encode(final_image_data).decode('utf-8')
 
-            filename = f"google_nano_{uuid.uuid4()}.png"
-            save_path = os.path.join("static", "generated", filename)
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            
-            with open(save_path, "wb") as f:
-                f.write(image_bytes)
-                
-            print(f"DEBUG: Nano Banana Image saved to {save_path}")
-            return f"/static/generated/{filename}"
+            # Vercel Read-Only Fix: Return Data URI instead of saving to file
+            print(f"DEBUG: Returning Google Image as Data URI (Length: {len(b64_string)})")
+            return f"data:image/png;base64,{b64_string}"
         
         # If we got here, we had no images. Let's see if there was text output (error or refusal).
         text_content = " ".join([p.text for p in response.parts if p.text])
@@ -201,6 +200,7 @@ def generate_image_dalle(prompt: str) -> str:
     Saves it locally to static/generated/ and returns a local relative URL.
     """
     import uuid
+    import base64
     
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -222,18 +222,14 @@ def generate_image_dalle(prompt: str) -> str:
 
         image_url_temp = response.data[0].url
         
-        # Download the image to make it permanent
-        filename = f"dalle_{uuid.uuid4()}.png"
-        save_path = os.path.join("static", "generated", filename)
-        
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        
+        # Download the image bytes
         img_data = requests.get(image_url_temp).content
-        with open(save_path, 'wb') as handler:
-            handler.write(img_data)
-
-        print(f"DEBUG: DALL-E Image saved to {save_path}")
-        return f"/static/generated/{filename}"
+        
+        # Vercel Read-Only Fix: Return Data URI
+        b64_string = base64.b64encode(img_data).decode('utf-8')
+        
+        print(f"DEBUG: Returning DALL-E Image as Data URI (Length: {len(b64_string)})")
+        return f"data:image/png;base64,{b64_string}"
 
     except Exception as e:
         print(f"ERROR: DALL-E Generation failed: {e}")
