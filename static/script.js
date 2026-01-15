@@ -46,8 +46,46 @@ setupXorGroup('theme-group', 'theme-value', (theme) => {
     }
 });
 
-// 3. Setup Style Switcher
-setupXorGroup('style-group', 'style-value', null);
+// Style Preview Data
+const styleDetails = {
+    'dali': {
+        img: 'https://placehold.co/600x600/222/d4af37?text=Dali+Surrealist+Sample',
+        desc: '"Dreamlike visuals with melting forms and bizarre landscapes."'
+    },
+    'scarry': {
+        img: 'https://placehold.co/600x600/222/d4af37?text=Richard+Scarry+Sample',
+        desc: '"Busy, colorful, detailed 1970s illustration style."'
+    },
+    'picasso': {
+        img: 'https://placehold.co/600x600/222/d4af37?text=Picasso+Cubism+Sample',
+        desc: '"Geometric shapes, fragmented perspectives, and abstract forms."'
+    },
+    'cyberpunk': {
+        img: 'https://placehold.co/600x600/222/d4af37?text=Cyberpunk+Sample',
+        desc: '"Neon lights, high-tech low-life, futuristic cityscapes."'
+    },
+    'technology': {
+        img: 'https://placehold.co/600x600/222/d4af37?text=Abstract+Tech+Sample',
+        desc: '"Clean lines, circuit board patterns, and modern digital aesthetics."'
+    }
+};
+
+// 3. Setup Style Switcher with Preview Update
+setupXorGroup('style-group', 'style-value', (styleKey) => {
+    const info = styleDetails[styleKey];
+    if (info) {
+        const img = document.getElementById('style-preview-img');
+        const desc = document.getElementById('style-description');
+        
+        // Simple fade effect
+        img.style.opacity = '0.5';
+        setTimeout(() => {
+            img.src = info.img;
+            desc.textContent = info.desc;
+            img.onload = () => { img.style.opacity = '1'; };
+        }, 150);
+    }
+});
 
 // 4. Setup Model Switcher
 setupXorGroup('model-group', 'model-value', null);
