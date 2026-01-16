@@ -282,3 +282,97 @@ textarea:focus, input[type="text"]:focus {
     }
 }
 
+/* Header & Logout Specifics */
+.main-header {
+    position: relative;
+    width: 100%;
+}
+
+.logout-btn {
+    position: absolute; 
+    top: 0; 
+    right: 0; 
+    color: var(--gold); 
+    text-decoration: none; 
+    font-family: 'Cinzel', serif; 
+    border: 1px solid var(--gold); 
+    padding: 5px 15px; 
+    border-radius: 4px; 
+    transition: all 0.3s;
+    font-size: 0.8rem;
+}
+
+.logout-btn:hover {
+    background: rgba(197, 160, 89, 0.1);
+}
+
+.version-badge {
+    font-size: 0.5em; 
+    color: green; 
+    vertical-align: middle; 
+    border: 1px solid green; 
+    padding: 2px 5px; 
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* Mobile Optimizations (Phones) */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+        line-height: 1.2;
+    }
+    
+    .version-badge {
+        display: block;
+        width: fit-content;
+        margin: 5px auto;
+    }
+
+    /* Stack logout button properly on small screens */
+    .logout-btn {
+        position: static;
+        display: inline-block;
+        margin-bottom: 15px;
+        align-self: flex-end;
+    }
+
+    .main-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .matting {
+        padding: 15px;
+    }
+
+    .picture-frame {
+        border-width: 10px;
+    }
+
+    .container {
+        width: 100%;
+    }
+    
+    .input-group {
+        width: 100%;
+    }
+
+    /* Ensure inputs don't overflow */
+    textarea, input[type="text"], .preview-column {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .xor-btn {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        flex: 1 1 40%; /* 2 per rowish */
+    }
+}
+
