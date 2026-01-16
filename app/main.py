@@ -43,6 +43,7 @@ async def startup_event():
              print(f" - {route.path} [Mount]")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/images", StaticFiles(directory="images"), name="images")
 templates = Jinja2Templates(directory="templates")
 
 # Simple in-memory storage for task status

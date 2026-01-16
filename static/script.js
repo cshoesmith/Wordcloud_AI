@@ -49,23 +49,23 @@ setupXorGroup('theme-group', 'theme-value', (theme) => {
 // Style Preview Data
 const styleDetails = {
     'dali': {
-        img: 'https://placehold.co/600x600/222/d4af37?text=Dali+Surrealist+Sample',
+        img: '/images/dali.png',
         desc: '"Dreamlike visuals with melting forms and bizarre landscapes."'
     },
     'scarry': {
-        img: 'https://placehold.co/600x600/222/d4af37?text=Richard+Scarry+Sample',
+        img: '/images/richard_scarry.png',
         desc: '"Busy, colorful, detailed 1970s illustration style."'
     },
     'picasso': {
-        img: 'https://placehold.co/600x600/222/d4af37?text=Picasso+Cubism+Sample',
+        img: '/images/picasso.png',
         desc: '"Geometric shapes, fragmented perspectives, and abstract forms."'
     },
     'cyberpunk': {
-        img: 'https://placehold.co/600x600/222/d4af37?text=Cyberpunk+Sample',
+        img: '/images/steampunk.png',
         desc: '"Neon lights, high-tech low-life, futuristic cityscapes."'
     },
     'technology': {
-        img: 'https://placehold.co/600x600/222/d4af37?text=Abstract+Tech+Sample',
+        img: '/images/abstracttech.png',
         desc: '"Clean lines, circuit board patterns, and modern digital aesthetics."'
     }
 };
