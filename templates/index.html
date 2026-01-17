@@ -24,6 +24,7 @@
                     <div class="xor-group" id="input-mode-group">
                         <button type="button" class="xor-btn selected" data-value="upload">Upload Image</button>
                         <button type="button" class="xor-btn" data-value="manual">Enter Words Manually</button>
+                        <button type="button" class="xor-btn" data-value="untappd">Untappd Friends</button>
                     </div>
                     <input type="hidden" id="input-mode-value" value="upload">
 
@@ -39,6 +40,23 @@
                             <label for="manual-text-input" style="display:block; margin-bottom:10px;">Enter your words (comma separated):</label>
                             <textarea id="manual-text-input" rows="6" placeholder="Example: Guinness, IPA, Dublin, Friends, Music, Pub, Friday Night..."></textarea>
                             <p class="note" style="margin-top: 5px;">Enter at least 3 descriptive words for best results.</p>
+                        </div>
+
+                        <!-- Untappd Container -->
+                        <div id="untappd-container" class="hidden">
+                            {% if request.session.untappd_token %}
+                                <div style="border: 1px solid green; padding: 15px; border-radius: 5px; background: rgba(0, 128, 0, 0.1);">
+                                    <h3 style="color: #4caf50; margin-top: 0;">✓ Connected to Untappd</h3>
+                                    <p class="note" style="margin: 5px 0;">Ready to fetch words from your friends' recent check-ins.</p>
+                                </div>
+                            {% else %}
+                                <div style="text-align: center;">
+                                    <p style="margin-bottom: 20px;">Connect your Untappd account to generate art from your friends' activity.</p>
+                                    <a href="/auth/untappd/login" class="xor-btn" style="text-decoration: none; display: inline-block; border-color: var(--gold); background: transparent; color: var(--gold);">
+                                        CONNECT UNTAPPD
+                                    </a>
+                                </div>
+                            {% endif %}
                         </div>
                         
                         <!-- Theme Selector (XOR) -->

@@ -26,15 +26,32 @@ function setupXorGroup(groupId, hiddenInputId, callback) {
 setupXorGroup('input-mode-group', 'input-mode-value', (mode) => {
     const uploadContainer = document.getElementById('upload-container');
     const manualTextContainer = document.getElementById('manual-text-container');
+    const untappdContainer = document.getElementById('untappd-container');
     
+    uploadContainer.classList.add('hidden');
+    manualTextContainer.classList.add('hidden');
+    untappdContainer.classList.add('hidden');
+
     if (mode === 'upload') {
         uploadContainer.classList.remove('hidden');
-        manualTextContainer.classList.add('hidden');
-    } else {
-        uploadContainer.classList.add('hidden');
+    } else if (mode === 'manual') {
         manualTextContainer.classList.remove('hidden');
+    } else if (mode === 'untappd') {
+        untappdContainer.classList.remove('hidden');
     }
 });
+
+// Check URL params for Untappd connection
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has('untappd_connected')) {
+    // Auto-switch to Untappd tab
+    const untappdBtn = document.querySelector('button[data-value="untappd"]');
+    if (untappdBtn) {
+        untappdBtn.click();
+    }
+} else if (urlParams.has('error')) {
+    alert("Error: " + urlParams.get('error'));
+}
 
 // 2. Setup Theme Switcher
 setupXorGroup('theme-group', 'theme-value', (theme) => {
@@ -110,13 +127,14 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
         }
     }
 
-    let endpoint = '/upload';
+    let endpoint = '';
     const formData = new FormData();
     formData.append('style', style);
     formData.append('model_provider', modelProvider);
     formData.append('theme', theme);
 
     if (inputMode === 'upload') {
+        endpoint = '/upload';
         const fileInput = document.getElementById('image-upload');
         const file = fileInput.files[0];
         if (!file) {
@@ -124,7 +142,7 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
             return;
         }
         formData.append('file', file);
-    } else {
+    } else if (inputMode === 'manual') {
         // Manual Input Mode
         endpoint = '/generate_manual';
         const manualText = document.getElementById('manual-text-input').value.trim();
@@ -133,6 +151,8 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
             return;
         }
         formData.append('words', manualText);
+    } else if (inputMode === 'untappd') {
+        endpoint = '/generate_untappd';
     }
     
     // Switch UI to loading state
@@ -143,6 +163,9 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
     
     if (inputMode === 'upload') {
         statusText.innerText = "Uploading image...";
+    } else if (inputMode === 'untappd') {
+        statusText.innerText = "Fetching friends check-ins...";
+        progressBar.style.width = "20%";
     } else {
         statusText.innerText = "Processing words...";
         progressBar.style.width = "30%";

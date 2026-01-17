@@ -7,8 +7,10 @@ from pydantic import BaseModel
 import uuid
 import asyncio
 import random
+import os
+import requests
 from typing import Optional
-from app.services.beercloud import get_wordcloud_data
+from app.services.beercloud import get_wordcloud_data, get_untappd_friends_words
 from app.services.image_gen import enrich_prompt, generate_image_dalle, generate_image_google
 from app.services.ocr_service import get_ocr_words
 from dotenv import load_dotenv
@@ -183,6 +185,58 @@ async def continue_generation_task(task_id: str, words: list[str], style: str, m
     except Exception as e:
         tasks[task_id] = {"status": "failed", "error": str(e), "progress": 100}
 
+# Untappd OAuth Routes (Delegated to utpd-oauth service)
+@app.get("/auth/untappd/login")
+async def untappd_login(request: Request):
+    # Service handling the client secret securely
+    auth_service_url = os.getenv("AUTH_SERVICE_URL", "https://utpd-oauth.wardy.au")
+    
+    # Construct callback URL
+    base_url = str(request.base_url).rstrip("/")
+    # Note: The auth service expects the 'next_url' to be where IT redirects back to.
+    # We want it to redirect to OUR callback.
+    my_callback_uri = f"{base_url}/auth/untappd/callback"
+    
+    # Redirect to the auth service's login page
+    # It will handle sending the user to Untappd and then back to 'next_url' with ?token_code=...
+    login_url = f"{auth_service_url}/login?next_url={my_callback_uri}"
+    
+    return RedirectResponse(login_url)
+
+@app.get("/auth/untappd/callback")
+async def untappd_callback(request: Request, token_code: str = None, error: str = None):
+    if error:
+         print(f"Auth Service reported error: {error}")
+         return RedirectResponse(url=f"/?error={error}")
+
+    if not token_code:
+         return RedirectResponse(url="/?error=no_token_code")
+
+    auth_service_url = os.getenv("AUTH_SERVICE_URL", "https://utpd-oauth.wardy.au")
+    get_token_url = f"{auth_service_url}/get-token"
+    
+    try:
+        # Exchange the one-time token_code for the real access_token
+        # acting as a server-to-server call.
+        response = requests.post(get_token_url, json={"token_code": token_code})
+        
+        if response.status_code == 200:
+            data = response.json()
+            access_token = data.get("access_token")
+            
+            if access_token:
+                request.session["untappd_token"] = access_token
+                return RedirectResponse(url="/?untappd_connected=true")
+        
+        # If we got here, something failed
+        print(f"Token Exchange Failed: {response.text}")
+        return RedirectResponse(url="/?error=token_exchange_failed")
+            
+    except Exception as e:
+        print(f"Untappd Exception: {e}")
+        return RedirectResponse(url="/?error=untappd_exception")
+
+
 async def process_ocr_task(task_id: str, image_bytes: bytes, style: str, model_provider: str, theme: str = "Beer"):
     tasks[task_id] = {"status": "analyzing_image", "progress": 10}
     loop = asyncio.get_running_loop()
@@ -290,6 +344,37 @@ async def generate_manual(request: Request, background_tasks: BackgroundTasks,
     except Exception as e:
         print(f"MANUAL GEN ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate_untappd")
+async def generate_untappd(request: Request, background_tasks: BackgroundTasks, style: str = Form("dali"), model_provider: str = Form("google")):
+    if not request.session.get("authenticated"):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    token = request.session.get("untappd_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not connected to Untappd")
+        
+    task_id = str(uuid.uuid4())
+    tasks[task_id] = {"status": "queued", "progress": 0}
+    
+    # Background task wrapper
+    async def process_untappd(tid, tkn, sty, prov):
+        loop = asyncio.get_running_loop()
+        tasks[tid] = {"status": "fetching_untappd", "progress": 10}
+        try:
+            words = await loop.run_in_executor(None, get_untappd_friends_words, tkn)
+            if not words:
+                 tasks[tid] = {"status": "failed", "error": "No words found from Untappd.", "progress": 100}
+                 return
+            
+            # Continue with generation
+            await continue_generation_task(tid, words, sty, prov, "Beer")
+            
+        except Exception as e:
+             tasks[tid] = {"status": "failed", "error": str(e), "progress": 100}
+
+    background_tasks.add_task(process_untappd, task_id, token, style, model_provider)
+    return {"task_id": task_id}
 
 @app.post("/resume_task")
 async def resume_task(request: Request, body: ResumeRequest, background_tasks: BackgroundTasks):

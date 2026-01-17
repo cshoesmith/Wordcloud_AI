@@ -6,10 +6,66 @@ except ImportError:
 import time
 import re
 import os
+import requests
 from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
+
+def get_untappd_friends_words(access_token: str) -> list[str]:
+    """
+    Fetches recent check-ins from the user's friends feed via Untappd API 
+    and extracts relevant words.
+    """
+    print("DEBUG: Fetching Untappd friends feed...")
+    try:
+        # Endpoint for User's Friend Activity Feed: /v4/checkin/recent
+        # Note: This endpoint might return global or friends depending on params, 
+        # but for authenticated users, /v4/checkin/recent usually gives the friend feed by default or via param.
+        # Let's try the standard activity feed.
+        url = "https://api.untappd.com/v4/checkin/recent" 
+        params = {"access_token": access_token, "limit": 50}
+        
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            print(f"Error fetching Untappd data: {response.text}")
+            return []
+            
+        data = response.json()
+        items = data.get("response", {}).get("checkins", {}).get("items", [])
+        
+        words = []
+        for item in items:
+            beer = item.get("beer", {})
+            brewery = item.get("brewery", {})
+            venue = item.get("venue", {})
+            
+            # Extract Beer Name
+            if beer.get("beer_name"):
+                words.append(beer["beer_name"])
+            
+            # Extract Style
+            if beer.get("beer_style"):
+                words.append(beer["beer_style"])
+                
+            # Extract Brewery
+            if brewery.get("brewery_name"):
+                words.append(brewery["brewery_name"])
+                
+            # Extract Location (City/Venue)
+            if venue:
+                 if venue.get("venue_name"):
+                     words.append(venue["venue_name"])
+                 if venue.get("location", {}).get("venue_city"):
+                     words.append(venue["location"]["venue_city"])
+
+        # Shuffle and Clean
+        print(f"DEBUG: Found {len(words)} raw terms from Untappd.")
+        return clean_words_with_llm(words)
+
+    except Exception as e:
+        print(f"Error in get_untappd_friends_words: {e}")
+        return []
 
 def clean_words_with_llm(raw_words: list[str]) -> list[str]:
     """
