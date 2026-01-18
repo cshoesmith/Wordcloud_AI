@@ -189,7 +189,7 @@ async def continue_generation_task(task_id: str, words: list[str], style: str, m
 @app.get("/auth/untappd/login")
 async def untappd_login(request: Request):
     # Service handling the client secret securely
-    auth_service_url = os.getenv("AUTH_SERVICE_URL", "https://utpd-oauth.wardy.au")
+    auth_service_url = os.getenv("AUTH_SERVICE_URL", "https://utpd-oauth.craftbeers.app")
     
     # Construct callback URL
     base_url = str(request.base_url).rstrip("/")
@@ -212,7 +212,7 @@ async def untappd_callback(request: Request, token_code: str = None, error: str 
     if not token_code:
          return RedirectResponse(url="/?error=no_token_code")
 
-    auth_service_url = os.getenv("AUTH_SERVICE_URL", "https://utpd-oauth.wardy.au")
+    auth_service_url = os.getenv("AUTH_SERVICE_URL", "https://utpd-oauth.craftbeers.app")
     get_token_url = f"{auth_service_url}/get-token"
     
     try:
