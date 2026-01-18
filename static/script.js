@@ -51,41 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Setup Model Switcher (Modal)
     setupXorGroup('model-group', 'model-value', null);
 
-    // 5. Setup Location Toggle
-    setupLocationToggle();
-
-    // 6. Modal Logic
+    // 5. Modal Logic
     setupModal();
 });
 
 
 /* --- Helper Functions --- */
-
-function setupLocationToggle() {
-    const btn = document.getElementById('manual-location-btn');
-    const container = document.getElementById('manual-location-container');
-    const input = document.getElementById('manual-location-input');
-
-    if (!btn || !container) return;
-
-    btn.addEventListener('click', () => {
-        const isHidden = container.classList.contains('hidden');
-        
-        if (isHidden) {
-            // User wants to set manual location
-            container.classList.remove('hidden');
-            btn.textContent = "Unset Manual Location";
-            btn.classList.add('selected'); // Visual cue
-            if(input) input.focus();
-        } else {
-            // User reverts to GPS (Default)
-            container.classList.add('hidden');
-            btn.textContent = "Set Manual Location";
-            btn.classList.remove('selected');
-            if(input) input.value = '';
-        }
-    });
-}
 
 // General logic to handle any XOR button group
 function setupXorGroup(groupId, hiddenInputId, callback) {
@@ -241,23 +212,12 @@ document.getElementById('generate-btn').addEventListener('click', async () => {
             return;
         }
     }
-    
-    // Check Manual Location
-    const locContainer = document.getElementById('manual-location-container');
-    const locInput = document.getElementById('manual-location-input');
-    let manualLocation = "";
-    if (locContainer && !locContainer.classList.contains('hidden')) {
-        manualLocation = locInput.value.trim();
-    }
 
     let endpoint = '';
     const formData = new FormData();
     formData.append('style', style);
     formData.append('model_provider', modelProvider);
     formData.append('theme', theme);
-    if (manualLocation) {
-        formData.append('manual_location', manualLocation);
-    }
 
     if (inputMode === 'upload') {
         endpoint = '/upload';
