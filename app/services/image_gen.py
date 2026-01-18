@@ -207,6 +207,10 @@ def generate_image_google(prompt: str) -> str:
         raise ImportError(error_msg)
     except Exception as e:
         print(f"ERROR: Google Generation failed: {e}")
+        # Check for specific known errors to give better feedback
+        err_str = str(e)
+        if "429" in err_str or "quota" in err_str.lower() or "resource exhausted" in err_str.lower():
+             raise ValueError("Google API Quota Exceeded (429). Try again later.")
         # Raise exception so it appears in the UI instead of generic 'failed'
         raise e
 
@@ -249,7 +253,10 @@ def generate_image_dalle(prompt: str) -> str:
 
     except Exception as e:
         print(f"ERROR: DALL-E Generation failed: {e}")
-        return None
+        err_str = str(e)
+        if "429" in err_str or "billing" in err_str.lower() or "insufficient_quota" in err_str.lower():
+             raise ValueError("OpenAI API Quota Exceeded (429). Please check your billing.")
+        raise e
 
 
 def generate_image(data: any, style: str = 'dali') -> str:
@@ -287,10 +294,15 @@ def generate_image(data: any, style: str = 'dali') -> str:
     try:
         return generate_image_google(visual_prompt)
     except Exception as e:
-        print(f'DEBUG: Google Gen failed ({e}), trying DALL-E...')
+        print(f"DEBUG: Google Gen failed ({e}), trying DALL-E...")
+        # If it was a quota error, user might want to know, but we have a fallback. 
+        # But if specifically requested Google, maybe we should stop? 
+        # The 'generate_image' function is the generic one. It falls back.
+        
         try:
              return generate_image_dalle(visual_prompt)
         except Exception as e2:
-             print(f'ERROR: All image generation failed: {e2}')
-             return None
+             print(f"ERROR: All image generation failed: {e2}")
+             # If both failed, raise the last error (likely quota) or a combined message
+             raise ValueError(f"Image Generation Failed. Google: {e}. DALL-E: {e2}")
 
