@@ -12,10 +12,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def get_untappd_friends_words(access_token: str) -> list[str]:
+def get_untappd_friends_words(access_token: str) -> dict:
     """
     Fetches recent check-ins from the user's friends feed via Untappd API 
-    and extracts relevant words.
+    and extracts relevant words, categorized.
     """
     print("DEBUG: Fetching Untappd friends feed...")
     try:
@@ -67,26 +67,33 @@ def get_untappd_friends_words(access_token: str) -> list[str]:
         print(f"Error in get_untappd_friends_words: {e}")
         return []
 
-def clean_words_with_llm(raw_words: list[str]) -> list[str]:
+def clean_words_with_llm(raw_words: list[str]) -> dict:
     """
-    Uses OpenAI to clean the scraped word list: fixing typos, removing UI junk,
-    and ensuring only relevant beer-related terms remain.
+    Uses OpenAI to clean the scraped word list and categorize it.
+    Returns a dict with keys: 'beer_styles', 'breweries', 'venues', 'friends', 'flavors', 'miscellaneous'.
     """
     openai_key = os.getenv("OPENAI_API_KEY")
+    # If no key or no words, return basic structure with raw words in 'miscellaneous'
     if not openai_key or not raw_words:
-        return raw_words
+        return {
+            "beer_styles": [],
+            "breweries": [],
+            "venues": [],
+            "friends": [],
+            "flavors": [],
+            "miscellaneous": raw_words
+        }
 
     try:
         client = OpenAI(api_key=openai_key)
         
         # Deduplicate and limit to save tokens
         unique_words = list(set(raw_words))
-        # If we have too many, just take the top 150 to avoid massive context
-        if len(unique_words) > 150:
-            unique_words = unique_words[:150]
+        if len(unique_words) > 200:
+            unique_words = unique_words[:200]
             
         joined_words = ", ".join(unique_words)
-        print(f"DEBUG: Asking LLM to clean {len(unique_words)} words...")
+        print(f"DEBUG: Asking LLM to clean and categorize {len(unique_words)} words...")
 
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -95,35 +102,79 @@ def clean_words_with_llm(raw_words: list[str]) -> list[str]:
                     "role": "system",
                     "content": (
                         "You are a data cleaner for a beer attributes word cloud. "
-                        "Input: A raw list of strings scraped from a website. "
-                        "Task: Return a clean, comma-separated list of ONLY relevant beer descriptors (flavors, styles, ingredients) and brewery names. "
+                        "Input: A raw list of strings scraped from a website or menu. "
+                        "Task: CLEAN the words (fix typos, remove UI junk) and CATEGORIZE them into a JSON structure. "
+                        "Categories:\n"
+                        "- 'beer_styles': (e.g., IPA, Stout, Lager, Gose)\n"
+                        "- 'breweries': (e.g., Stone, Guinness, Other Half)\n"
+                        "- 'venues': (e.g., The Pub, McSorleys, Beer Garden)\n"
+                        "- 'friends': (Names of people if apparent, e.g., Chris, Dave. If ambiguous, put in misc)\n"
+                        "- 'flavors': (e.g., Hoppy, Malty, Citrus, Dank)\n"
+                        "- 'miscellaneous': (Anything else valid but not fitting above)\n"
+                        "\n"
                         "Rules:\n"
-                        "1. FIX partial/corrupted words (e.g., 'Strawb...' -> 'Strawberry', 'Haz...' -> 'Hazy').\n"
+                        "1. FIX partial/corrupted words.\n"
                         "2. REMOVE all UI elements (Settings, Login, Cookies, Privacy, Menu, 'Analyze').\n"
-                        "3. REMOVE generic/stop words (Beer, Drink, Pour, View, Full).\n"
-                        "4. KEEP specialized terms (DIPA, Gose, Brett, Citra, Mosaic).\n"
-                        "5. Output ONLY the comma-separated list, nothing else."
+                        "3. REMOVE generic/stop words (Beer, Drink, Pour, View, Full) unless they are specific flavors.\n"
+                        "4. Output valid JSON only."
                     )
                 },
                 {
                     "role": "user",
-                    "content": f"Clean this list: {joined_words}"
+                    "content": f"Process this list: {joined_words}"
                 }
             ],
+            response_format={"type": "json_object"},
             temperature=0.1,
-            max_tokens=500
+            max_tokens=800
         )
         
         cleaned_text = response.choices[0].message.content
-        # robust splitting
-        cleaned_list = [w.strip() for w in cleaned_text.split(',') if len(w.strip()) > 2]
+        import json
+        data = json.loads(cleaned_text)
         
-        print(f"DEBUG: LLM cleaned list size: {len(cleaned_list)}")
-        return cleaned_list
+        # Ensure all keys exist
+        keys = ["beer_styles", "breweries", "venues", "friends", "flavors", "miscellaneous"]
+        for k in keys:
+            if k not in data:
+                data[k] = []
+                
+        print(f"DEBUG: LLM categorization complete.")
+        return data
 
     except Exception as e:
-        print(f"Warning: LLM cleaning failed ({e}). Returning original list.")
-        return raw_words
+        print(f"Warning: LLM cleaning failed ({e}). Returning raw list in 'miscellaneous'.")
+        return {
+            "beer_styles": [],
+            "breweries": [],
+            "venues": [],
+            "friends": [],
+            "flavors": [],
+            "miscellaneous": raw_words
+        }
+
+def describe_venue(venue_name: str) -> str:
+    """
+    Asks LLM to describe the vibe/theme of a venue based on its name.
+    """
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not openai_key or not venue_name:
+        return ""
+        
+    try:
+        client = OpenAI(api_key=openai_key)
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a creative writer. Given a venue name, imagine its atmosphere, decor, and vibe. Describe it in 2-3 evocative sentences suitable for an art prompt (e.g. lighting, materials, crowd, mood)."},
+                {"role": "user", "content": f"Describe the venue: {venue_name}"}
+            ],
+            max_tokens=150
+        )
+        return response.choices[0].message.content
+    except Exception:
+        return ""
+
 
 def get_wordcloud_data(cookie_string: str = None):
     """

@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 # Ensure env is loaded
 load_dotenv()
 
-def enrich_prompt(words: list[str], style: str, theme: str = "Beer") -> dict:
-    """Uses OpenAI to create a detailed visual description from the word list. Returns dict with 'visual_prompt' and 'reasoning'."""
+def enrich_prompt(data: any, style: str, theme: str = "Beer", venue_description: str = "") -> dict:
+    """Uses OpenAI to create a detailed visual description from the word list/dict. Returns dict with 'visual_prompt' and 'reasoning'."""
     openai_key = os.getenv("OPENAI_API_KEY")
     if not openai_key:
         print("DEBUG: No OpenAI Key found, skipping enrichment.")
@@ -18,62 +18,63 @@ def enrich_prompt(words: list[str], style: str, theme: str = "Beer") -> dict:
     try:
         client = OpenAI(api_key=openai_key)
         
-        if theme.lower() == "beer":
-            context_desc = "ocr from beer menus/history"
-            entity_class = "Beer Names (Stouts, IPAs), Venues (Pubs, Breweries), Locations (Cities, Countries), and Styles/Flavors"
-            expand_ex = "'Guinness' -> dark, velvet, Irish harp; 'IPA' -> hops, green vines, bitterness"
-            item_name_ref = "beer/venue name"
-            item_coll_ref = "beer names"
-            experience_ref = "beer experience"
+        # Prepare content based on input type
+        if isinstance(data, dict):
+            # Formatted string for the LLM
+            input_text = "Categorized Keywords:\n"
+            for category, items in data.items():
+                if items:
+                    input_text += f"- {category.upper()}: {', '.join(items)}\n"
+            if venue_description:
+                input_text += f"\nVENUE VIBE/THEME: {venue_description}\n"
         else:
-            context_desc = f"list items related to the theme section: '{theme}'"
-            entity_class = f"Key Entities, Categories, and Descriptors relevant to the theme '{theme}'"
-            expand_ex = f"items related to '{theme}' -> visual metaphors"
-            item_name_ref = f"'{theme}' item name"
-            item_coll_ref = f"'{theme}' items"
-            experience_ref = f"'{theme}' experience"
+            # Fallback for list
+            input_text = f"Keywords: {', '.join(data)}"
+
+        context_desc = "categorized beer and venue data" if isinstance(data, dict) else "list of words"
 
         system_content = (
-            f"You are an expert AI Art Director and Data Storyteller. Your goal is to transform a list of raw text ({context_desc}) "
-            "into a rich, cohesive visual narrative. \n"
+            f"You are an expert AI Art Director and Data Storyteller. Your goal is to transform {context_desc} "
+            "into a rich, cohesive visual narrative prompt for an image generator.\n\n"
             "PROCESS:\n"
-            f"1. ANALYZE: Identify every entity in the list. Classify them into: {entity_class}.\n"
-            f"2. EXPAND: For each key entity, imagine its visual essence (e.g., {expand_ex}).\n"
-            "3. NARRATE: Develop a short visual story or scene where all these expanded elements coexist naturally.\n"
-            "4. PROMPT: Write a highly detailed image generation prompt based on this narrative in the requested style."
+            "1. ANALYZE: Review the keywords. Pay special attention to 'BEER_STYLES', 'BREWERIES', and 'VENUES'.\n"
+            "2. THEME: If a VENUE VIBE is provided, use it as the core atmosphere (lighting, mood, setting).\n"
+            "3. METAPHOR: Do NOT just list the words. Transform specific items into visual metaphors.\n"
+            "   - A 'Stout' might become a river of dark velvet or an obsidian monolith.\n"
+            "   - 'Stone Brewery' might appear as literal gargoyles or stone architecture.\n"
+            "   - Friends' names can be subtle details (e.g., 'Chris' engraved on a mug, or a character named Chris).\n"
+            "4. STORY: Develop a short visual scene where these elements coexist.\n"
+            "5. PROMPT: Write a highly detailed image generation prompt based on this narrative in the requested style."
         )
-        
-        joined_words = ", ".join(words)
         
         style_instructions = {
             "scarry": (
                 "Style: Richard Scarry 'Busytown' Illustration (1970s Children's Book).\n"
-                "Details: A chaotic, happy scene teeming with anthropomorphic animals (pigs in lederhosen, cat waiters). "
-                f"Every {item_name_ref} must be a physical object or shop sign in the scene. "
+                "Details: A chaotic, happy scene. "
+                "Every beer style and brewery must be a physical shop, character, or vehicle. "
                 "Draw a 'Where's Waldo' density. Flat colors, detailed ink lines."
             ),
             "dali": (
                 "Style: Salvador Dali Surrealist Oil Painting.\n"
-                "Details: A dreamscape where time and matter are fluid. Transform the {item_coll_ref} into surreal objects "
-                "(e.g., a clock made of foam, a burning giraffe made of hops). "
-                "Long shadows, vast horizons, double images. Captures the subconscious feeling of the drinking session."
+                "Details: A dreamscape. Venue descriptions become the warped landscape. "
+                "Beer objects melt or float. High symbolism. "
+                "Captures the subconscious feeling of the drinking session."
             ),
             "picasso": (
                 "Style: Pablo Picasso Synthetic Cubism (1912).\n"
-                "Details: Fragment and reassemble the {experience_ref}. Show the bottles, glasses, and pub atmosphere from multiple angles simultaneously. "
-                "Use geometric shapes, collage-like textures, and a muted but rich color palette (ochre, grey, blue). "
-                "Abstract the text into graphical elements within the composition."
+                "Details: Fragment and reassemble the venue and bottles. "
+                "Use the venue vibe to dictate the color palette."
             ),
             "cyberpunk": (
                 "Style: High-Fidelity Cyberpunk / Blade Runner Aesthetic.\n"
-                "Details: A futuristic night market in Neo-Tokyo. The {item_coll_ref} are glowing neon holograms and advertisements reflected in rain-slicked streets. "
-                "Cybernetic patrons sipping glowing liquids. High contrast, blue and pink, chromatic aberration, steam, grime, and high-tech."
+                "Details: A futuristic night market. The venue is a high-tech lounge. "
+                "Breweries are neon corporate logos. "
+                "High contrast, rain, steam, neon."
             ),
             "technology": (
                 "Style: Abstract Future Technology / Data Visualization.\n"
-                "Details: A visual representation of the {experience_ref} as a complex digital network. "
-                "Circuit board pathways made of gold liquid. Nodes representing beers pulsing with light. "
-                "Clean, white, silver, and blue color scheme. 3D render, Octane render, 8k resolution."
+                "Details: A visual representation of the data as a complex network. "
+                "The venue is the server. Beers are data packets."
             )
         }
         
@@ -81,12 +82,12 @@ def enrich_prompt(words: list[str], style: str, theme: str = "Beer") -> dict:
         specific_instruction = style_instructions.get(style, style_instructions["dali"])
         
         user_content = (
-            f"Input Words ({theme}): {joined_words}.\n\n"
-            f"Execute the Multi-stage process. Categories -> Expansions -> Story.\n"
-            f"Finally, generate the prompt applying this specific style guidance:\n{specific_instruction}"
+            f"INPUT DATA:\n{input_text}\n\n"
+            f"Create the prompt applying this specific style guidance:\n{specific_instruction}"
         )
 
         print(f"DEBUG: Calling OpenAI for prompt enrichment (Style: {style})...")
+
         # Use gpt-4o for better detail text generation
         model = "gpt-4o"
         try:
@@ -249,4 +250,47 @@ def generate_image_dalle(prompt: str) -> str:
     except Exception as e:
         print(f"ERROR: DALL-E Generation failed: {e}")
         return None
+
+
+def generate_image(data: any, style: str = 'dali') -> str:
+    from app.services.beercloud import describe_venue
+    
+    venue_desc = ''
+    if isinstance(data, dict):
+        # Implement Logic to pick a venue and get description
+        venues = data.get('venues', [])
+        if venues:
+            # Pick the first one or random? First is fine.
+            venue_name = venues[0]
+            print(f'DEBUG: Found venue: {venue_name}. Asking for description...')
+            venue_desc = describe_venue(venue_name)
+    
+    # Step 1: Enrich Prompt
+    enriched = enrich_prompt(data, style, venue_description=venue_desc)
+    
+    visual_prompt = ''
+    if enriched and 'visual_prompt' in enriched:
+        visual_prompt = enriched['visual_prompt']
+    else:
+        # Fallback if enrichment fails
+        if isinstance(data, dict):
+            # flatten
+            flat = []
+            for k,v in data.items():
+                if isinstance(v, list): flat.extend(v)
+            visual_prompt = f'A surreal artistic beer cloud featuring: {', '.join(flat[:20])}'
+        else:
+             visual_prompt = f'A surreal artistic beer cloud featuring: {', '.join(data[:20])}'
+
+    # Step 2: Generate Image
+    # Try Google First, then DALL-E
+    try:
+        return generate_image_google(visual_prompt)
+    except Exception as e:
+        print(f'DEBUG: Google Gen failed ({e}), trying DALL-E...')
+        try:
+             return generate_image_dalle(visual_prompt)
+        except Exception as e2:
+             print(f'ERROR: All image generation failed: {e2}')
+             return None
 

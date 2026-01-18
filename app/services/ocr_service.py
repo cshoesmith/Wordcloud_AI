@@ -9,35 +9,46 @@ load_dotenv()
 # No longer initializing EasyOCR to save memory/startup time
 # reader = easyocr.Reader(['en']) 
 
-def get_ocr_words(image_bytes: bytes) -> list[str]:
+def get_ocr_words(image_bytes: bytes) -> dict:
     """
-    Extracts words from image bytes using GPT-4o Vision.
-    Encodes image to Base64 and asks GPT to read the content words.
+    Extracts words from image bytes using GPT-4o Vision and categorizes them.
+    Returns structured dict.
     """
     try:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             print("ERROR: No OpenAI Key found for Vision OCR.")
-            return []
+            return {}
 
         client = OpenAI(api_key=api_key)
         
         # Encode bytes to base64
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
 
-        print("Calling GPT-4o Vision for text extraction...")
+        print("Calling GPT-4o Vision for text extraction and categorization...")
         
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a text extractor. Your job is to look at a word cloud or screenshot and extract the meaningful content words. Ignore standard UI elements (wifi, battery, time, settings, menus, 'untappd', 'beer', 'brewery' headers). Output ONLY a comma-separated list of the distinct, interesting words found (like beer names, brewery names, styles, flavors). Do not output full sentences."
+                    "content": (
+                        "You are a text extractor and classifier. Read the text from the image (menu, check-in, screenshot). "
+                        "EXTRACT and CATEGORIZE the relevant entities into valid JSON.\n"
+                        "Categories:\n"
+                        "- 'beer_styles'\n"
+                        "- 'breweries'\n"
+                        "- 'venues' (Restaurant, Pub, Bar names)\n"
+                        "- 'friends' (Usernames, People names)\n"
+                        "- 'flavors' (Tasting notes)\n"
+                        "- 'miscellaneous'\n"
+                        "Ignore UI elements."
+                    )
                 },
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Extract the beer names, brewery names, and tasting notes from this image. Ignore interface text."},
+                        {"type": "text", "text": "Extract and categorize the data from this image."},
                         {
                             "type": "image_url",
                             "image_url": {
@@ -48,24 +59,26 @@ def get_ocr_words(image_bytes: bytes) -> list[str]:
                     ]
                 }
             ],
-            max_tokens=300
+            response_format={"type": "json_object"},
+            max_tokens=600
         )
 
         content = response.choices[0].message.content
         print(f"GPT Vision Raw Output: {content}")
         
-        # Basic cleanup of the response string into a list
-        cleaned_str = re.sub(r'[^\w\s,]', '', content) # Remove unexpected special chars but keep commas
-        words = [w.strip() for w in cleaned_str.split(',') if len(w.strip()) > 2]
-        
-        # Remove common duplicates or junk that might have slipped through
-        # (GPT is usually good, but a second pass helps)
-        junk_words = {"untappd", "settings", "profile", "beer", "brewery", "image", "extracted", "text"}
-        final_words = [w for w in words if w.lower() not in junk_words]
-        
-        print(f"GPT Found {len(final_words)} words: {final_words[:10]}...")
-        return final_words
+        import json
+        try:
+            data = json.loads(content)
+            # Normalize keys
+            expected_keys = ["beer_styles", "breweries", "venues", "friends", "flavors", "miscellaneous"]
+            for k in expected_keys:
+                if k not in data:
+                    data[k] = []
+            return data
+        except json.JSONDecodeError:
+            print("GPT returned invalid JSON. Falling back to simple list in miscellaneous.")
+            return {"miscellaneous": [content], "beer_styles": [], "breweries": [], "venues": [], "friends": [], "flavors": []}
 
     except Exception as e:
         print(f"GPT Vision OCR Failed: {e}")
-        return []
+        return {}

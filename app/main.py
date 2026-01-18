@@ -73,12 +73,9 @@ async def process_wordcloud(task_id: str, cookie: str):
              
         tasks[task_id] = {"status": "generating_art", "progress": 40, "words": words, "word_count": len(words)}
         
-        # Shuffle to vary the concept if the user generates multiple times from same history
-        shuffled_words = words.copy()
-        random.shuffle(shuffled_words)
-
-        # Step 2: Enrich Prompt - Increased word count for deeper context
-        rich_data = await loop.run_in_executor(None, enrich_prompt, shuffled_words[:500], "dali")
+        # Step 2: Enrich Prompt
+        # Pass the structured dictionary directly to enrich_prompt
+        rich_data = await loop.run_in_executor(None, enrich_prompt, words, "dali")
         
         prompt = ""
         reasoning = ""
@@ -90,7 +87,15 @@ async def process_wordcloud(task_id: str, cookie: str):
              prompt = rich_data
         
         if not prompt:
-             prompt = f"A surrealist masterpiece with {', '.join(words[:10])}"
+             # Fallback logic handling both dict and list
+             if isinstance(words, dict):
+                 flat = []
+                 for k, v in words.items():
+                     if isinstance(v, list): flat.extend(v)
+                 fallback_snippet = ", ".join(flat[:10])
+             else:
+                 fallback_snippet = ", ".join(words[:10])
+             prompt = f"A surrealist masterpiece with {fallback_snippet}"
 
         # Update task status with prompt info so frontend can see it immediately
         tasks[task_id] = {

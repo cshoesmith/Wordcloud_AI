@@ -328,7 +328,17 @@ function pollTask(taskId) {
                 });
                 
             } else if (statusData.status === 'generating_art') {
-                const wordExample = statusData.words ? statusData.words.slice(0, 3).join(", ") : "beers";
+                let wordExample = "beers";
+                try {
+                    if (statusData.words) {
+                        if (Array.isArray(statusData.words)) {
+                            wordExample = statusData.words.slice(0, 3).join(", ");
+                        } else if (typeof statusData.words === 'object') {
+                            const flat = Object.values(statusData.words).flat();
+                            wordExample = flat.slice(0, 3).join(", ");
+                        }
+                    }
+                } catch(e) { console.log(e); }
                 statusText.innerText = `Dreaming of ${wordExample}...`;
             } else if (statusData.status === 'completed') {
                 clearInterval(pollInterval);
@@ -358,5 +368,18 @@ function showResult(data) {
     // Populate details
     document.getElementById('art-reasoning').innerText = data.reasoning || "Reasoning unavailable.";
     document.getElementById('art-prompt').innerText = data.generated_prompt || "...";
-    document.getElementById('extracted-words').innerText = (data.words && data.words.length > 0) ? data.words.join(" • ") : "";
+    
+    let displayWords = "";
+    try {
+        if (data.words) {
+            if (Array.isArray(data.words)) {
+                 displayWords = data.words.join(" • ");
+            } else if (typeof data.words === 'object') {
+                 // Group by category for nicer display? Or just flatten.
+                 // Flatten for now to match original UI
+                 displayWords = Object.values(data.words).flat().join(" • ");
+            }
+        }
+    } catch(e) {}
+    document.getElementById('extracted-words').innerText = displayWords;
 }
