@@ -123,7 +123,11 @@ async def process_wordcloud(task_id: str, cookie: str):
             tasks[task_id] = {"status": "failed", "error": "Image generation failed", "progress": 100}
             
     except Exception as e:
-        tasks[task_id] = {"status": "failed", "error": str(e), "progress": 100}
+        import traceback
+        print(f"TASK FAILED: {task_id}")
+        traceback.print_exc()
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        tasks[task_id] = {"status": "failed", "error": error_msg, "progress": 100}
 
 async def continue_generation_task(task_id: str, words: list[str], style: str, model_provider: str, theme: str = "Beer"):
     tasks[task_id]["status"] = "enriching_prompt"
@@ -188,7 +192,10 @@ async def continue_generation_task(task_id: str, words: list[str], style: str, m
             tasks[task_id] = {"status": "failed", "error": "Image generation failed", "progress": 100}
 
     except Exception as e:
-        tasks[task_id] = {"status": "failed", "error": str(e), "progress": 100}
+        import traceback
+        traceback.print_exc()
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        tasks[task_id] = {"status": "failed", "error": error_msg, "progress": 100}
 
 # Untappd OAuth Routes (Delegated to utpd-oauth service)
 @app.get("/auth/untappd/login")
@@ -266,7 +273,10 @@ async def process_ocr_task(task_id: str, image_bytes: bytes, style: str, model_p
         await continue_generation_task(task_id, words, style, model_provider, theme)
 
     except Exception as e:
-        tasks[task_id] = {"status": "failed", "error": str(e), "progress": 100}
+        import traceback
+        traceback.print_exc()
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        tasks[task_id] = {"status": "failed", "error": error_msg, "progress": 100}
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -376,7 +386,7 @@ async def generate_untappd(request: Request, background_tasks: BackgroundTasks, 
             await continue_generation_task(tid, words, sty, prov, "Beer")
             
         except Exception as e:
-             tasks[tid] = {"status": "failed", "error": str(e), "progress": 100}
+             tasks[tid] = {"status": "failed", "error": f"{type(e).__name__}: {str(e)}", "progress": 100}
 
     background_tasks.add_task(process_untappd, task_id, token, style, model_provider)
     return {"task_id": task_id}

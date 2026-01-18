@@ -143,7 +143,11 @@ def clean_words_with_llm(raw_words: list[str]) -> dict:
         return data
 
     except Exception as e:
-        print(f"Warning: LLM cleaning failed ({e}). Returning raw list in 'miscellaneous'.")
+        print(f"Warning: LLM cleaning failed ({type(e).__name__}: {e}). Returning raw list in 'miscellaneous'.")
+        # Check for rate limit and warn explicitly
+        if "429" in str(e) or "quota" in str(e).lower():
+            print("ALERT: OpenAI Rate Limit/Quota exceeded in cleaning step.")
+            
         return {
             "beer_styles": [],
             "breweries": [],
