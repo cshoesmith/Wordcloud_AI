@@ -137,12 +137,22 @@ async def continue_generation_task(task_id: str, words: list[str], style: str, m
     try:
         # Step 2: Enrich Prompt (GPT-4o)
         
-        # Shuffle words to ensure variety if the list is long, avoiding "header bias"
-        shuffled_words = words.copy()
-        random.shuffle(shuffled_words)
+        # Prepare data for enrichment
+        enrichment_input = words
         
-        # Pass a larger chunk of words (500) to allow for the new multi-stage "all words" reasoning
-        rich_data = await loop.run_in_executor(None, enrich_prompt, shuffled_words[:500], style, theme)
+        if isinstance(words, list):
+            # Shuffle words to ensure variety if the list is long, avoiding "header bias"
+            shuffled_words = words.copy()
+            random.shuffle(shuffled_words)
+            enrichment_input = shuffled_words[:500]
+        elif isinstance(words, dict):
+            # For structured data, we don't shuffle categories, 
+            # but we could shuffle items within categories if needed. 
+            # For now, pass as is.
+            enrichment_input = words
+
+        # Pass to enrich_prompt
+        rich_data = await loop.run_in_executor(None, enrich_prompt, enrichment_input, style, theme)
         
         prompt = ""
         reasoning = ""
@@ -155,7 +165,14 @@ async def continue_generation_task(task_id: str, words: list[str], style: str, m
 
         if not prompt:
              # Fallback
-             prompt = f"A list of items: {', '.join(words[:20])}"
+             if isinstance(words, dict):
+                 flat = []
+                 for k, v in words.items():
+                     if isinstance(v, list): flat.extend(v)
+                 fallback_snippet = ", ".join(flat[:20])
+             else:
+                 fallback_snippet = ", ".join(words[:20])
+             prompt = f"A list of items: {fallback_snippet}"
 
         # Update task with prompt info
         tasks[task_id] = {
